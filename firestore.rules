@@ -1,0 +1,200 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==========================================
+    // HELPERS CONCEITUAIS
+    // ==========================================
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isActiveUser() {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             getUserData().status == 'active';
+    }
+    
+    function isAdmin() {
+      return getUserData().role == 'admin';
+    }
+    
+    function isHR() {
+      return getUserData().role == 'hr';
+    }
+    
+    function isManager() {
+      return getUserData().role == 'manager';
+    }
+    
+    function isSupervisor() {
+      return getUserData().role == 'supervisor';
+    }
+    
+    function isViewer() {
+      return getUserData().role == 'viewer';
+    }
+    
+    function isUserRole() {
+      return getUserData().role == 'user';
+    }
+
+    function isOwnDocument(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function belongsToCompany(companyId) {
+      return getUserData().company_id == companyId;
+    }
+
+    function hasCellAccess(cellId) {
+      return isAdmin() || 
+             getUserData().can_view_all_cells == true || 
+             (cellId in getUserData().allowed_cell_ids);
+    }
+
+    function hasTeamAccess(teamId) {
+      return isAdmin() || 
+             getUserData().can_view_all_teams == true || 
+             (teamId in getUserData().allowed_team_ids);
+    }
+
+    // ==========================================
+    // REGRAS DE ACESSO POR COLEÇÃO
+    // ==========================================
+
+    // allowed_emails
+    match /allowed_emails/{emailId} {
+      allow read: if isActiveUser() && (isAdmin() || isHR() || isManager());
+      allow write: if isActiveUser() && (isAdmin() || isHR());
+    }
+
+    // users
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isOwnDocument(userId) || (isActiveUser() && (isAdmin() || isHR() || isManager())));
+      // O próprio usuário pode atualizar seu login, mas papéis e status só admin/hr podem escrever.
+      allow create: if isSignedIn();
+      allow update: if isActiveUser() && (
+        isOwnDocument(userId) || 
+        isAdmin() || 
+        (isHR() && request.resource.data.role != 'admin')
+      );
+      allow delete: if isActiveUser() && isAdmin();
+    }
+
+    // companies
+    match /companies/{companyId} {
+      allow read: if isActiveUser() && (isAdmin() || belongsToCompany(companyId));
+      allow write: if isActiveUser() && isAdmin();
+    }
+
+    // business_units
+    match /business_units/{unitId} {
+      allow read: if isActiveUser() && (isAdmin() || belongsToCompany(resource.data.company_id));
+      allow write: if isActiveUser() && isAdmin();
+    }
+
+    // production_cells
+    match /production_cells/{cellId} {
+      allow read: if isActiveUser() && (isAdmin() || belongsToCompany(resource.data.company_id));
+      allow write: if isActiveUser() && (isAdmin() || isHR() || isManager());
+    }
+
+    // teams
+    match /teams/{teamId} {
+      allow read: if isActiveUser() && (isAdmin() || belongsToCompany(resource.data.company_id));
+      allow write: if isActiveUser() && (isAdmin() || isHR() || isManager());
+    }
+
+    // employees
+    match /employees/{employeeId} {
+      allow read: if isActiveUser() && (
+        isAdmin() || isHR() || isManager() || isViewer() ||
+        (isSupervisor() && hasTeamAccess(resource.data.team_id)) ||
+        (isUserRole() && resource.data.email == request.auth.token.email)
+      );
+      allow write: if isActiveUser() && (
+        isAdmin() || isHR() ||
+        (isSupervisor() && hasTeamAccess(request.resource.data.team_id))
+      );
+    }
+
+    // vacation_requests
+    match /vacation_requests/{requestId} {
+      allow read: if isActiveUser() && (
+        isAdmin() || isHR() || isManager() || isViewer() ||
+        (isSupervisor() && hasTeamAccess(resource.data.team_id)) ||
+        (isUserRole() && resource.data.requester_user_id == request.auth.uid)
+      );
+      allow write: if isActiveUser() && (
+        isAdmin() || isHR() ||
+        (isSupervisor() && hasTeamAccess(request.resource.data.team_id)) ||
+        (isUserRole() && request.resource.data.requester_user_id == request.auth.uid)
+      );
+    }
+
+    // absence_records
+    match /absence_records/{recordId} {
+      allow read: if isActiveUser() && (
+        isAdmin() || isHR() || isManager() || isViewer() ||
+        (isSupervisor() && hasTeamAccess(resource.data.team_id))
+      );
+      allow write: if isActiveUser() && (
+        isAdmin() || isHR() ||
+        (isSupervisor() && hasTeamAccess(request.resource.data.team_id))
+      );
+    }
+
+    // capacity_snapshots
+    match /capacity_snapshots/{snapshotId} {
+      allow read: if isActiveUser() && (
+        isAdmin() || isHR() || isManager() || isViewer() ||
+        (isSupervisor() && hasCellAccess(resource.data.cell_id))
+      );
+      allow write: if isActiveUser() && (isAdmin() || isHR() || isManager() || isSupervisor());
+    }
+
+    // alerts
+    match /alerts/{alertId} {
+      allow read: if isActiveUser() && (
+        isAdmin() || isHR() || isManager() || isViewer() ||
+        (isSupervisor() && hasCellAccess(resource.data.cell_id))
+      );
+      allow write: if isActiveUser();
+    }
+
+    // notifications
+    match /notifications/{notificationId} {
+      allow read: if isActiveUser() && (
+        resource.data.recipient_user_id == request.auth.uid || 
+        resource.data.recipient_role == getUserData().role ||
+        isAdmin()
+      );
+      allow write: if isActiveUser();
+    }
+
+    // blocked_periods
+    match /blocked_periods/{periodId} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser() && (isAdmin() || isHR() || isManager());
+    }
+
+    // system_logs
+    match /system_logs/{logId} {
+      allow read: if isActiveUser() && (isAdmin() || isHR() || isManager());
+      allow create: if isSignedIn(); // Qualquer alteração de dados gera log.
+      allow update, delete: if false; // Logs são imutáveis.
+    }
+
+    // settings
+    match /settings/{settingsId} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser() && isAdmin();
+    }
+  }
+}

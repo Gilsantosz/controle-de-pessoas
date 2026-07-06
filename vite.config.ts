@@ -24,13 +24,13 @@ export default defineConfig(({ mode }) => {
       tailwindcss()
     ],
     resolve: {
-      alias: useMock ? {
+      alias: (useMock ? {
         'firebase/app': path.resolve(__dirname, 'src/services/firebaseMock.ts'),
         'firebase/auth': path.resolve(__dirname, 'src/services/firebaseMock.ts'),
         'firebase/firestore': path.resolve(__dirname, 'src/services/firebaseMock.ts'),
         '../../services/firebase': path.resolve(__dirname, 'src/services/firebaseMock.ts'),
         '../services/firebase': path.resolve(__dirname, 'src/services/firebaseMock.ts')
-      } : {}
+      } : {}) as Record<string, string>
     }
   };
 })

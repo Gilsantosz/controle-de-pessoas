@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Bell, Search, Check, ShieldAlert, LogOut } from 'lucide-react';
+import { Bell, Search, Check, ShieldAlert } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { getNotifications, markNotificationAsRead } from '../../services/databaseServices';
 import type { Notification } from '../../types';
@@ -8,11 +7,9 @@ import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const Topbar: React.FC = () => {
-  const { currentUser, logout } = useAppStore();
+  const { currentUser } = useAppStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const navigate = useNavigate();
-
 
   useEffect(() => {
     if (!currentUser) return;
@@ -28,7 +25,6 @@ export const Topbar: React.FC = () => {
 
     loadNotifications();
     
-    // Polling de 15 segundos para notificações no MVP
     const interval = setInterval(loadNotifications, 15000);
     return () => clearInterval(interval);
   }, [currentUser]);
@@ -46,11 +42,6 @@ export const Topbar: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
   const getSeverityStyle = (severity: string) => {
     switch (severity) {
       case 'critical':
@@ -65,123 +56,17 @@ export const Topbar: React.FC = () => {
   };
 
   return (
-    <header className="h-20 bg-white border-b border-[#E8ECF2] flex items-center justify-between px-8 z-40 relative select-none">
+    <header className="h-20 bg-white border-b border-[#E8ECF2] flex items-center justify-between px-8 z-20 shrink-0 select-none">
       
-      {/* LADO ESQUERDO: LOGO ZENTRA */}
-      <div className="flex items-center gap-2.5 shrink-0">
-        {/* Caixa Laranja com símbolo Z */}
-        <div className="w-7 h-7 bg-[#FF9A3E] rounded-lg flex items-center justify-center text-white relative shadow-sm overflow-hidden">
-          <span className="font-extrabold text-sm select-none tracking-tighter" style={{ fontFamily: 'system-ui' }}>Z</span>
-          {/* Listra diagonal interna */}
-          <div className="absolute inset-0 border border-white/20 transform rotate-45 scale-125"></div>
-        </div>
-        <span className="text-xl font-bold text-[#0F172A] tracking-tighter select-none" style={{ fontFamily: 'system-ui' }}>
-          zentra
+      {/* LADO ESQUERDO: SAUDAÇÃO OU TÍTULO DISCRETO */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-bold text-[#8A94A6] uppercase tracking-wider">
+          VacationPro Célula Industrial
         </span>
       </div>
 
-      {/* CENTRO: LINKS DE NAVEGAÇÃO ZENTRA */}
-      <nav className="hidden lg:flex items-center gap-1">
-        <NavLink 
-          to="/dashboard"
-          className={({ isActive }) => 
-            `px-4 py-1.5 text-xs font-semibold transition-all ${
-              isActive 
-                ? 'bg-[#0F172A] text-white rounded-full' 
-                : 'text-[#5A6A85] hover:text-[#0F172A]'
-            }`
-          }
-        >
-          Home
-        </NavLink>
-        <NavLink 
-          to="/employees"
-          className={({ isActive }) => 
-            `px-4 py-1.5 text-xs font-semibold transition-all ${
-              isActive 
-                ? 'bg-[#0F172A] text-white rounded-full' 
-                : 'text-[#5A6A85] hover:text-[#0F172A]'
-            }`
-          }
-        >
-          Payments
-        </NavLink>
-        <NavLink 
-          to="/capacity"
-          className={({ isActive }) => 
-            `px-4 py-1.5 text-xs font-semibold transition-all ${
-              isActive 
-                ? 'bg-[#0F172A] text-white rounded-full' 
-                : 'text-[#5A6A85] hover:text-[#0F172A]'
-            }`
-          }
-        >
-          Balances
-        </NavLink>
-        <NavLink 
-          to="/teams"
-          className={({ isActive }) => 
-            `px-4 py-1.5 text-xs font-semibold transition-all ${
-              isActive 
-                ? 'bg-[#0F172A] text-white rounded-full' 
-                : 'text-[#5A6A85] hover:text-[#0F172A]'
-            }`
-          }
-        >
-          Customers
-        </NavLink>
-        <NavLink 
-          to="/cells"
-          className={({ isActive }) => 
-            `px-4 py-1.5 text-xs font-semibold transition-all ${
-              isActive 
-                ? 'bg-[#0F172A] text-white rounded-full' 
-                : 'text-[#5A6A85] hover:text-[#0F172A]'
-            }`
-          }
-        >
-          Products
-        </NavLink>
-        <NavLink 
-          to="/approvals"
-          className={({ isActive }) => 
-            `px-4 py-1.5 text-xs font-semibold transition-all ${
-              isActive 
-                ? 'bg-[#0F172A] text-white rounded-full' 
-                : 'text-[#5A6A85] hover:text-[#0F172A]'
-            }`
-          }
-        >
-          Billing
-        </NavLink>
-        <NavLink 
-          to="/reports"
-          className={({ isActive }) => 
-            `px-4 py-1.5 text-xs font-semibold transition-all ${
-              isActive 
-                ? 'bg-[#0F172A] text-white rounded-full' 
-                : 'text-[#5A6A85] hover:text-[#0F172A]'
-            }`
-          }
-        >
-          Reports
-        </NavLink>
-        <NavLink 
-          to="/settings"
-          className={({ isActive }) => 
-            `px-4 py-1.5 text-xs font-semibold transition-all ${
-              isActive 
-                ? 'bg-[#0F172A] text-white rounded-full' 
-                : 'text-[#5A6A85] hover:text-[#0F172A]'
-            }`
-          }
-        >
-          Connect
-        </NavLink>
-      </nav>
-
-      {/* LADO DIREITO: PESQUISA, NOTIFICAÇÃO E AVATAR */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* LADO DIREITO: PESQUISA E NOTIFICAÇÕES */}
+      <div className="flex items-center gap-3">
         
         {/* ÍCONE DE PESQUISA */}
         <button className="w-9 h-9 rounded-full bg-[#F3F4F6]/50 hover:bg-[#F3F4F6] border border-slate-100 flex items-center justify-center text-[#5A6A85] hover:text-[#0F172A] transition-all">
@@ -253,29 +138,6 @@ export const Topbar: React.FC = () => {
               </div>
             </>
           )}
-        </div>
-
-        {/* AVATAR COM DROPDOWN LOGOUT */}
-        <div className="relative group">
-          <button className="flex items-center gap-2 pl-2">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#FF9A3E] to-[#6254E8] text-white flex items-center justify-center font-bold text-xs border border-white shadow-sm overflow-hidden select-none">
-              {currentUser.name.substring(0, 2).toUpperCase()}
-            </div>
-          </button>
-          
-          <div className="absolute right-0 mt-1.5 hidden group-hover:block w-44 bg-white border border-[#E8ECF2] shadow-[0_12px_30px_rgba(0,0,0,0.08)] rounded-2xl p-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-            <div className="px-3 py-2 border-b border-[#F6F8FB] mb-1 text-left">
-              <p className="text-xs font-semibold text-[#0F172A] truncate">{currentUser.name}</p>
-              <p className="text-[9px] text-[#8A94A6] font-bold uppercase tracking-wider">{currentUser.role}</p>
-            </div>
-            <button 
-              onClick={handleLogout}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#E04F6F] hover:bg-[#FFE6EE]/40 rounded-xl font-bold transition-all text-left cursor-pointer"
-            >
-              <LogOut size={14} />
-              Sair do Sistema
-            </button>
-          </div>
         </div>
 
       </div>

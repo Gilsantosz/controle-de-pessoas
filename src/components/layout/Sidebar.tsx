@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Layers, GitBranch, CalendarDays, 
   ClipboardCheck, Compass, TrendingUp, Monitor, 
-  FileSpreadsheet, UserCheck, Settings, Link2, LogOut, ShieldAlert
+  FileSpreadsheet, UserCheck, Settings, LogOut, ShieldAlert
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -356,40 +356,22 @@ export const Sidebar: React.FC = () => {
                 {!sidebarCollapsed && <span className="animate-in fade-in duration-200">Usuários e Acessos</span>}
               </NavLink>
               {canShow(['admin']) && (
-                <>
-                  <NavLink 
-                    to="/settings" 
-                    className={({ isActive }) => 
-                      `flex items-center rounded-2xl text-sm font-medium transition-all ${
-                        sidebarCollapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'
-                      } ${
-                        isActive 
-                          ? 'bg-[#6254E8] text-white' 
-                          : 'text-[#8A94A6] hover:bg-[#F6F8FB] hover:text-[#0F172A]'
-                      }`
-                    }
-                    title={sidebarCollapsed ? "Configurações" : undefined}
-                  >
-                    <Settings size={18} className="shrink-0" />
-                    {!sidebarCollapsed && <span className="animate-in fade-in duration-200">Configurações</span>}
-                  </NavLink>
-                  <NavLink 
-                    to="/integrations" 
-                    className={({ isActive }) => 
-                      `flex items-center rounded-2xl text-sm font-medium transition-all ${
-                        sidebarCollapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'
-                      } ${
-                        isActive 
-                          ? 'bg-[#6254E8] text-white' 
-                          : 'text-[#8A94A6] hover:bg-[#F6F8FB] hover:text-[#0F172A]'
-                      }`
-                    }
-                    title={sidebarCollapsed ? "Integrações ERP" : undefined}
-                  >
-                    <Link2 size={18} className="shrink-0" />
-                    {!sidebarCollapsed && <span className="animate-in fade-in duration-200">Integrações ERP</span>}
-                  </NavLink>
-                </>
+                <NavLink 
+                  to="/settings" 
+                  className={({ isActive }) => 
+                    `flex items-center rounded-2xl text-sm font-medium transition-all ${
+                      sidebarCollapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'
+                    } ${
+                      isActive 
+                        ? 'bg-[#6254E8] text-white' 
+                        : 'text-[#8A94A6] hover:bg-[#F6F8FB] hover:text-[#0F172A]'
+                    }`
+                  }
+                  title={sidebarCollapsed ? "Configurações" : undefined}
+                >
+                  <Settings size={18} className="shrink-0" />
+                  {!sidebarCollapsed && <span className="animate-in fade-in duration-200">Configurações</span>}
+                </NavLink>
               )}
             </div>
           </div>

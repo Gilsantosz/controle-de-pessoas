@@ -24,7 +24,6 @@ import { NotificationsPage } from '../pages/notifications';
 import { ReportsPage } from '../pages/reports';
 import { AdminUsersPage } from '../pages/admin-users';
 import { SettingsPage } from '../pages/settings';
-import { IntegrationsPage } from '../pages/integrations';
 
 // Guard para proteger rotas autenticadas
 interface ProtectedRouteProps {
@@ -85,8 +84,7 @@ export const router = createBrowserRouter([
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'admin/users', element: <AdminUsersPage /> },
-      { path: 'settings', element: <SettingsPage /> },
-      { path: 'integrations', element: <IntegrationsPage /> }
+      { path: 'settings', element: <SettingsPage /> }
     ]
   },
   {

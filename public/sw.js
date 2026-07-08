@@ -1,8 +1,9 @@
 const CACHE_NAME = 'vacationpro-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  './',
+  './index.html',
+  './manifest.json',
+  './favicon.svg'
 ];
 
 self.addEventListener('install', event => {
@@ -53,7 +54,7 @@ self.addEventListener('fetch', event => {
       }).catch(() => {
         // Fallback offline se a rede falhar
         if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
+          return caches.match('./index.html');
         }
       });
     })

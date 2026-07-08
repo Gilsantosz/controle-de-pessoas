@@ -1,5 +1,5 @@
 import React from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createHashRouter, Navigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { AppShell } from '../components/layout/AppShell';
 
@@ -48,7 +48,7 @@ const AnonymousRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/login',
     element: (

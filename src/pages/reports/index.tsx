@@ -29,11 +29,13 @@ export const ReportsPage: React.FC = () => {
     try {
       let csv = '';
       let filename = '';
+      let rowCount = 0;
 
       if (type === 'vacations') {
         const data = await getVacationRequests(currentUser);
         filename = `ferias_export_${new Date().toISOString().slice(0,10)}.csv`;
         csv = 'Colaborador;Matricula;Celula;Inicio;Fim;Dias;Status;Origem;Risco\n';
+        rowCount = data.length;
         data.forEach(v => {
           csv += `"${v.employee_name}";"${v.employee_registration}";"${v.cell_name}";"${v.start_date}";"${v.end_date}";${v.days_count};"${v.status}";"${v.origin}";"${v.impact_level}"\n`;
         });
@@ -41,23 +43,24 @@ export const ReportsPage: React.FC = () => {
         const data = await getAbsenceRecords(currentUser);
         filename = `absenteismo_export_${new Date().toISOString().slice(0,10)}.csv`;
         csv = 'Colaborador;Matricula;Data;Tipo;Justificativa;Minutos Atraso;Perda Estimada(R$)\n';
+        rowCount = data.length;
         data.forEach(a => {
           csv += `"${a.employee_name}";"${a.employee_registration}";"${a.date}";"${a.type}";"${a.subtype}";${a.delay_minutes || 0};${a.estimated_production_loss}\n`;
         });
       } else if (type === 'expiring') {
         const data = await getEmployees(currentUser);
-        // Filtrar apenas com saldo e prazo próximo
         filename = `ferias_vencendo_export_${new Date().toISOString().slice(0,10)}.csv`;
         csv = 'Colaborador;Matricula;Cargo;Saldo Ferias;Admissao;Prazo Concessao;Status\n';
-        data
-          .filter(e => e.vacation_balance_days > 0)
-          .forEach(e => {
-            csv += `"${e.name}";"${e.registration}";"${e.role}";${e.vacation_balance_days};"${e.hire_date}";"${e.concession_deadline}";"${e.status}"\n`;
-          });
+        const filtered = data.filter(e => e.vacation_balance_days > 0);
+        rowCount = filtered.length;
+        filtered.forEach(e => {
+          csv += `"${e.name}";"${e.registration}";"${e.role}";${e.vacation_balance_days};"${e.hire_date}";"${e.concession_deadline}";"${e.status}"\n`;
+        });
       } else if (type === 'logs') {
         const data = await getSystemLogs(currentUser);
         filename = `auditoria_logs_export_${new Date().toISOString().slice(0,10)}.csv`;
         csv = 'Usuario;Email;Papel;Acao;Entidade;Entidade ID;Data/Hora\n';
+        rowCount = data.length;
         data.forEach(l => {
           csv += `"${l.user_id}";"${l.user_email}";"${l.user_role}";"${l.action}";"${l.entity}";"${l.entity_id}";"${l.created_at}"\n`;
         });
@@ -65,13 +68,20 @@ export const ReportsPage: React.FC = () => {
 
       downloadCSV(filename, csv);
 
-      // Gravar log de exportação de dados
+      // Gravar log de exportação de dados com metadados detalhados
       await logAction(
         `EXPORT_CSV_${type.toUpperCase()}`,
         'reports',
         type,
         null,
-        { filename, scope: currentUser.role },
+        { 
+          filename, 
+          scope: currentUser.role,
+          row_count: rowCount,
+          exported_by_email: currentUser.email,
+          exported_by_name: currentUser.name,
+          timestamp: new Date().toISOString()
+        },
         currentUser
       );
 

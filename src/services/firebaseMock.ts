@@ -177,12 +177,33 @@ export const getDocs = async (queryRef: any) => {
   if (queryRef.filters && queryRef.filters.length > 0) {
     items = items.filter(item => {
       return queryRef.filters.every((f: any) => {
-        const val = item[f.field];
-        if (f.op === '==') {
-          return val === f.value;
+        if (f.type === 'where') {
+          const val = item[f.field];
+          if (f.op === '==') {
+            return val === f.value;
+          }
+          if (f.op === 'in') {
+            return Array.isArray(f.value) && f.value.includes(val);
+          }
+          if (f.op === 'array-contains') {
+            return Array.isArray(val) && val.includes(f.value);
+          }
+          return true;
         }
-        if (f.op === 'in') {
-          return Array.isArray(f.value) && f.value.includes(val);
+        if (f.type === 'or') {
+          return f.constraints.some((c: any) => {
+            const val = item[c.field];
+            if (c.op === '==') {
+              return val === c.value;
+            }
+            if (c.op === 'in') {
+              return Array.isArray(c.value) && c.value.includes(val);
+            }
+            if (c.op === 'array-contains') {
+              return Array.isArray(val) && val.includes(c.value);
+            }
+            return false;
+          });
         }
         return true;
       });
@@ -231,7 +252,7 @@ export const updateDoc = async (docRef: any, data: any) => {
 export const query = (colRef: any, ...constraints: any[]) => {
   const filters: any[] = [];
   constraints.forEach(c => {
-    if (c.type === 'where') {
+    if (c && (c.type === 'where' || c.type === 'or' || c.type === 'and')) {
       filters.push(c);
     }
   });
@@ -240,6 +261,14 @@ export const query = (colRef: any, ...constraints: any[]) => {
 
 export const where = (field: string, op: string, value: any) => {
   return { type: 'where', field, op, value };
+};
+
+export const or = (...constraints: any[]) => {
+  return { type: 'or', constraints };
+};
+
+export const and = (...constraints: any[]) => {
+  return { type: 'and', constraints };
 };
 
 export const orderBy = () => ({ type: 'orderBy' });

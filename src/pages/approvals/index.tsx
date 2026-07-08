@@ -95,12 +95,17 @@ export const ApprovalsPage: React.FC = () => {
           const empData = empSnap.data();
           const currentBalance = empData.vacation_balance_days || 0;
           const currentUsed = empData.used_vacation_days || 0;
+          const currentPending = empData.pending_vacation_days || 0;
           
+          const todayStr = new Date().toISOString().split('T')[0];
+          const isCurrentVacation = selectedReq.start_date <= todayStr && selectedReq.end_date >= todayStr;
+
           await saveEmployee({
             ...empData,
             vacation_balance_days: Math.max(0, currentBalance - selectedReq.days_count),
             used_vacation_days: currentUsed + selectedReq.days_count,
-            status: 'vacation' // Coloca em férias futuramente se for o caso ou apenas atualiza saldo
+            pending_vacation_days: Math.max(0, currentPending - selectedReq.days_count),
+            status: isCurrentVacation ? 'vacation' : empData.status
           } as any, currentUser);
         }
       }
@@ -142,6 +147,18 @@ export const ApprovalsPage: React.FC = () => {
       };
 
       await saveVacationRequest(updatedRequest, currentUser);
+      
+      const empRef = doc(db, 'employees', selectedReq.employee_id);
+      const empSnap = await getDoc(empRef);
+      if (empSnap.exists()) {
+        const empData = empSnap.data();
+        const currentPending = empData.pending_vacation_days || 0;
+        await saveEmployee({
+          ...empData,
+          pending_vacation_days: Math.max(0, currentPending - selectedReq.days_count)
+        } as any, currentUser);
+      }
+
       setRejectReason('');
       await loadRequests();
     } catch (err: any) {

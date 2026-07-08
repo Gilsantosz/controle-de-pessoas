@@ -134,8 +134,7 @@ export async function runDatabaseSeed(): Promise<void> {
 
   allowed.forEach(a => {
     const norm = a.email.toLowerCase().trim();
-    const cleanId = norm.replace(/[^a-zA-Z0-9]/g, '_');
-    const allowedDoc = doc(db, 'allowed_emails', cleanId);
+    const allowedDoc = doc(db, 'allowed_emails', norm);
     batch.set(allowedDoc, {
       email: a.email,
       normalized_email: norm,

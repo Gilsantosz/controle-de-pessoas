@@ -8,7 +8,8 @@ import {
   query, 
   where, 
   orderBy,
-  limit
+  limit,
+  or
 } from 'firebase/firestore';
 import type { 
   DocumentData,
@@ -66,12 +67,35 @@ export function applyScopeFilters(
       ? user.allowed_team_ids 
       : ['_no_access_'];
       
+    const employeesScope = user.allowed_employee_ids && user.allowed_employee_ids.length > 0
+      ? user.allowed_employee_ids
+      : ['_no_access_'];
+
     // Coleções específicas que contêm team_id
-    if (['employees', 'vacation_requests', 'absence_records', 'teams'].includes(collectionName)) {
+    if (['employees', 'vacation_requests', 'absence_records'].includes(collectionName)) {
+      const isEmployeeCol = collectionName === 'employees';
+      const empIdField = isEmployeeCol ? 'id' : 'employee_id';
       return query(
         colRef, 
         where('company_id', '==', user.company_id),
-        where('team_id', 'in', teams)
+        or(
+          where('team_id', 'in', teams),
+          where('owner_supervisor_id', '==', user.uid),
+          where('supervisor_ids', 'array-contains', user.uid),
+          where(empIdField, 'in', employeesScope)
+        ) as any
+      );
+    }
+    
+    if (collectionName === 'teams') {
+      return query(
+        colRef,
+        where('company_id', '==', user.company_id),
+        or(
+          where('id', 'in', teams),
+          where('owner_supervisor_id', '==', user.uid),
+          where('supervisor_ids', 'array-contains', user.uid)
+        ) as any
       );
     }
     // Coleções que contêm cell_id
@@ -455,9 +479,8 @@ export async function saveAllowedEmail(
   allowed: Omit<AllowedEmail, 'id'> & { id?: string },
   currentUser: UserProfile
 ): Promise<string> {
-  const colRef = collection(db, 'allowed_emails');
   const isNew = !allowed.id;
-  const docId = isNew ? doc(colRef).id : allowed.id!;
+  const docId = isNew ? allowed.normalized_email : allowed.id!;
   
   const beforeDoc = !isNew ? (await getDoc(doc(db, 'allowed_emails', docId))).data() : null;
   
@@ -542,4 +565,145 @@ export async function saveERPIntegration(
     currentUser
   );
   return docId;
+}
+
+export async function createNotification(
+  notification: Omit<Notification, 'id' | 'created_at' | 'read'>,
+  _currentUser?: UserProfile
+): Promise<string> {
+  const colRef = collection(db, 'notifications');
+  const docId = doc(colRef).id;
+  const data = {
+    ...notification,
+    id: docId,
+    read: false,
+    created_at: new Date().toISOString()
+  };
+  await setDoc(doc(db, 'notifications', docId), data);
+  return docId;
+}
+
+export async function evaluateAbsenceAlerts(
+  employeeId: string,
+  currentUser: UserProfile
+): Promise<void> {
+  const absCol = collection(db, 'absence_records');
+  const q = query(absCol, where('employee_id', '==', employeeId));
+  const snap = await getDocs(q);
+  const employeeAbsences = snap.docs.map(d => d.data() as AbsenceRecord);
+  
+  const empSnap = await getDoc(doc(db, 'employees', employeeId));
+  if (!empSnap.exists()) return;
+  const emp = empSnap.data() as Employee;
+  
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  const sixtyDaysAgo = new Date();
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  
+  const unexcusedThisMonth = employeeAbsences.filter(a => 
+    a.type === 'absence' && 
+    a.subtype === 'unjustified' && 
+    a.date.startsWith(currentMonthStr)
+  );
+  
+  const unexcusedLast60Days = employeeAbsences.filter(a => 
+    a.type === 'absence' && 
+    a.subtype === 'unjustified' && 
+    new Date(a.date) >= sixtyDaysAgo
+  );
+  
+  const delaysThisMonth = employeeAbsences.filter(a => 
+    a.type === 'delay' && 
+    (a.delay_minutes || 0) > 15 && 
+    a.date.startsWith(currentMonthStr)
+  );
+  
+  if (unexcusedLast60Days.length >= 3) {
+    await triggerAlert({
+      alert_level: 'critical',
+      alert_type: 'recurrence',
+      reason: `Recorrência crítica: ${emp.name} possui ${unexcusedLast60Days.length} faltas injustificadas nos últimos 60 dias.`,
+      occurrences_count: unexcusedLast60Days.length,
+      period_days: 60,
+      production_impact: unexcusedLast60Days.length * 400 * (emp.productivity_rate || 1.0),
+      related_entity: 'employee',
+      related_entity_id: emp.id,
+      status: 'active',
+      company_id: currentUser.company_id,
+      business_unit_id: emp.business_unit_id,
+      cell_id: emp.cell_id
+    }, currentUser);
+  }
+  else if (unexcusedThisMonth.length >= 2) {
+    await triggerAlert({
+      alert_level: 'warning',
+      alert_type: 'recurrence',
+      reason: `Alerta de absenteísmo: ${emp.name} possui ${unexcusedThisMonth.length} faltas injustificadas neste mês.`,
+      occurrences_count: unexcusedThisMonth.length,
+      period_days: 30,
+      production_impact: unexcusedThisMonth.length * 400 * (emp.productivity_rate || 1.0),
+      related_entity: 'employee',
+      related_entity_id: emp.id,
+      status: 'active',
+      company_id: currentUser.company_id,
+      business_unit_id: emp.business_unit_id,
+      cell_id: emp.cell_id
+    }, currentUser);
+  }
+  
+  if (delaysThisMonth.length >= 3) {
+    await triggerAlert({
+      alert_level: 'operational',
+      alert_type: 'pattern',
+      reason: `Padrão de atraso: ${emp.name} possui ${delaysThisMonth.length} atrasos superiores a 15 minutos neste mês.`,
+      occurrences_count: delaysThisMonth.length,
+      period_days: 30,
+      production_impact: delaysThisMonth.reduce((sum, d) => sum + (d.estimated_production_loss || 0), 0),
+      related_entity: 'employee',
+      related_entity_id: emp.id,
+      status: 'active',
+      company_id: currentUser.company_id,
+      business_unit_id: emp.business_unit_id,
+      cell_id: emp.cell_id
+    }, currentUser);
+  }
+}
+
+async function triggerAlert(alertData: Omit<Alert, 'id' | 'created_at'>, currentUser: UserProfile) {
+  const alertsCol = collection(db, 'alerts');
+  const q = query(
+    alertsCol, 
+    where('related_entity_id', '==', alertData.related_entity_id),
+    where('alert_type', '==', alertData.alert_type),
+    where('alert_level', '==', alertData.alert_level),
+    where('status', '==', 'active')
+  );
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    const activeAlert = snap.docs[0].data() as Alert;
+    await saveAlert({
+      ...activeAlert,
+      reason: alertData.reason,
+      occurrences_count: alertData.occurrences_count,
+      production_impact: alertData.production_impact,
+      updated_at: new Date().toISOString()
+    } as any, currentUser);
+  } else {
+    await saveAlert({
+      ...alertData,
+      created_at: new Date().toISOString()
+    }, currentUser);
+    
+    await createNotification({
+      type: alertData.alert_level === 'critical' ? 'operational_risk' : 'system_alert',
+      title: `Alerta: ${alertData.alert_level.toUpperCase()}`,
+      message: alertData.reason,
+      recipient_role: 'supervisor',
+      severity: alertData.alert_level === 'critical' ? 'critical' : (alertData.alert_level === 'warning' ? 'medium' : 'low'),
+      related_entity: 'employee',
+      related_entity_id: alertData.related_entity_id
+    }, currentUser);
+  }
 }

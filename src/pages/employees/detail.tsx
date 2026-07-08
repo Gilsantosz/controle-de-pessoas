@@ -36,8 +36,10 @@ export const EmployeeDetailPage: React.FC = () => {
   const [acqEnd, setAcqEnd] = useState('');
   const [concessionDeadline, setConcessionDeadline] = useState('');
   const [vacationBalance, setVacationBalance] = useState(30);
+  const [ownerSupervisorId, setOwnerSupervisorId] = useState('');
+  const [supervisorIds, setSupervisorIds] = useState<string[]>([]);
+  const [createdByUserId, setCreatedByUserId] = useState('');
   const [status, setStatus] = useState<EmployeeStatus>('active');
-  
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,6 +52,10 @@ export const EmployeeDetailPage: React.FC = () => {
         ]);
         setCells(cellData);
         setTeams(teamData);
+        if (!isEdit && currentUser.role === 'supervisor' && teamData.length === 1) {
+          setTeamId(teamData[0].id);
+          setCellId(teamData[0].cell_id);
+        }
       } catch (err) {
         console.error(err);
       }
@@ -66,6 +72,22 @@ export const EmployeeDetailPage: React.FC = () => {
           const snap = await getDoc(docRef);
           if (snap.exists()) {
             const data = snap.data();
+            
+            // Check scope for supervisor
+            if (currentUser.role === 'supervisor') {
+              const isAllowed = 
+                data.owner_supervisor_id === currentUser.uid ||
+                (data.supervisor_ids && data.supervisor_ids.includes(currentUser.uid)) ||
+                (currentUser.allowed_team_ids && currentUser.allowed_team_ids.includes(data.team_id)) ||
+                (currentUser.allowed_employee_ids && currentUser.allowed_employee_ids.includes(data.id));
+              
+              if (!isAllowed) {
+                setError("Acesso negado. Este colaborador está fora do seu escopo operacional.");
+                setLoading(false);
+                return;
+              }
+            }
+
             setName(data.name || '');
             setRegistration(data.registration || '');
             setPhone(data.phone || '');
@@ -84,6 +106,9 @@ export const EmployeeDetailPage: React.FC = () => {
             setConcessionDeadline(data.concession_deadline || '');
             setVacationBalance(data.vacation_balance_days || 30);
             setStatus(data.status || 'active');
+            setOwnerSupervisorId(data.owner_supervisor_id || '');
+            setSupervisorIds(data.supervisor_ids || []);
+            setCreatedByUserId(data.created_by_user_id || '');
           }
         } catch (err) {
           console.error(err);
@@ -139,11 +164,14 @@ export const EmployeeDetailPage: React.FC = () => {
       acquisition_period_end: acqEnd,
       concession_deadline: concessionDeadline,
       vacation_balance_days: Number(vacationBalance),
-      used_vacation_days: isEdit ? 0 : 0, // No MVP será calculado
+      used_vacation_days: isEdit ? 0 : 0, 
       pending_vacation_days: 0,
       status,
       company_id: currentUser.company_id,
       business_unit_id: currentUser.business_unit_ids[0] || 'bu_industrial',
+      owner_supervisor_id: isEdit ? (ownerSupervisorId || currentUser.uid) : (currentUser.role === 'supervisor' ? currentUser.uid : (ownerSupervisorId || currentUser.uid)),
+      supervisor_ids: isEdit ? (supervisorIds.length > 0 ? supervisorIds : [currentUser.uid]) : (currentUser.role === 'supervisor' ? [currentUser.uid] : (supervisorIds.length > 0 ? supervisorIds : [currentUser.uid])),
+      created_by_user_id: isEdit ? (createdByUserId || currentUser.uid) : currentUser.uid,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       created_by: currentUser.email,
@@ -160,6 +188,28 @@ export const EmployeeDetailPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (error && error.startsWith("Acesso negado")) {
+    return (
+      <div className="space-y-8 max-w-4xl mx-auto">
+        <div className="bg-white premium-card p-8 max-w-md w-full text-center mx-auto mt-12 border border-[#E8ECF2]/60">
+          <div className="w-16 h-16 bg-[#FFE6EE] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-[#E04F6F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-[#0F172A] font-semibold text-xl mb-2">Acesso Negado</h2>
+          <p className="text-[#8A94A6] mb-6 text-xs font-medium">{error}</p>
+          <button 
+            onClick={() => navigate('/employees')}
+            className="w-full premium-button-primary"
+          >
+            Voltar para Colaboradores
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">

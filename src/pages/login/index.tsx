@@ -101,7 +101,7 @@ export const LoginPage: React.FC = () => {
       const querySnap = await getDocs(q);
 
       if (querySnap.empty) {
-        setError('Seu e-mail não está autorizado para acessar o VacationPro. Solicite liberação ao administrador.');
+        setError('Seu e-mail não está autorizado para acessar o sistema. Solicite liberação ao administrador.');
         setLoading(false);
         return;
       }

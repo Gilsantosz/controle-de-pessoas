@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { useAppStore } from '../store/useAppStore';
 import type { UserProfile, AllowedEmail } from '../types';
@@ -33,7 +33,7 @@ export const AppProviders: React.FC<ProvidersProps> = ({ children }) => {
           const profile = userDocSnap.data() as UserProfile;
           
           if (profile.status !== 'active') {
-            setAuthError("Sua conta está inativa ou bloqueada. Contate o administrador.");
+            setAuthError("Seu acesso está bloqueado. Procure o administrador do sistema.");
             await signOut(auth);
             setCurrentUser(null);
           } else {
@@ -44,14 +44,42 @@ export const AppProviders: React.FC<ProvidersProps> = ({ children }) => {
         } else {
           // Usuário não possui documento de perfil no Firestore.
           // Vamos verificar se seu e-mail está na lista allowed_emails
-          const allowedCol = collection(db, 'allowed_emails');
-          const q = query(allowedCol, where('normalized_email', '==', email));
-          const querySnap = await getDocs(q);
+          const allowedDocRef = doc(db, 'allowed_emails', email);
+          const allowedDocSnap = await getDoc(allowedDocRef);
 
-          if (!querySnap.empty) {
+          if (allowedDocSnap.exists()) {
             // E-mail autorizado! Cria o perfil inicial no Firestore
-            const allowedData = querySnap.docs[0].data() as AllowedEmail;
+            const allowedData = allowedDocSnap.data() as AllowedEmail;
             
+            let updatedAllowedTeamIds = [...(allowedData.allowed_team_ids || [])];
+            let updatedAllowedCellIds = [...(allowedData.allowed_cell_ids || [])];
+            
+            if (allowedData.role === 'supervisor' && updatedAllowedTeamIds.length === 0) {
+              const supervisorName = firebaseUser.displayName || email.split('@')[0];
+              const ownTeamId = `team_own_${firebaseUser.uid}`;
+              const teamDocRef = doc(db, 'teams', ownTeamId);
+              
+              await setDoc(teamDocRef, {
+                id: ownTeamId,
+                company_id: allowedData.company_id || 'empresa_001',
+                business_unit_id: 'bu_industrial',
+                cell_id: 'cell_solda',
+                name: `Equipe de ${supervisorName}`,
+                description: `Equipe própria de ${supervisorName}`,
+                shift: 'morning',
+                supervisor_ids: [firebaseUser.uid],
+                owner_supervisor_id: firebaseUser.uid,
+                status: 'active',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+              
+              updatedAllowedTeamIds.push(ownTeamId);
+              if (!updatedAllowedCellIds.includes('cell_solda')) {
+                updatedAllowedCellIds.push('cell_solda');
+              }
+            }
+
             const newProfile: UserProfile = {
               uid: firebaseUser.uid,
               name: firebaseUser.displayName || email.split('@')[0],
@@ -61,8 +89,8 @@ export const AppProviders: React.FC<ProvidersProps> = ({ children }) => {
               status: 'active',
               company_id: allowedData.company_id || 'empresa_001',
               business_unit_ids: ['bu_industrial'],
-              allowed_cell_ids: allowedData.allowed_cell_ids || [],
-              allowed_team_ids: allowedData.allowed_team_ids || [],
+              allowed_cell_ids: updatedAllowedCellIds,
+              allowed_team_ids: updatedAllowedTeamIds,
               can_view_all_company: ['admin', 'manager'].includes(allowedData.role),
               can_view_all_business_unit: ['admin', 'manager', 'hr'].includes(allowedData.role),
               can_view_all_cells: ['admin', 'manager', 'hr'].includes(allowedData.role),
@@ -78,7 +106,7 @@ export const AppProviders: React.FC<ProvidersProps> = ({ children }) => {
             setCurrentUser(newProfile);
           } else {
             // E-mail não cadastrado nem autorizado
-            setAuthError("Seu e-mail não está autorizado para acessar o VacationPro. Solicite liberação ao administrador.");
+            setAuthError("Seu e-mail não está autorizado para acessar o sistema. Solicite liberação ao administrador.");
             await signOut(auth);
             setCurrentUser(null);
           }

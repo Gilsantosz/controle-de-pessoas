@@ -3,12 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { 
   getEmployees, getCells, getBlockedPeriods, 
-  getVacationRequests, saveVacationRequest 
+  getVacationRequests, saveVacationRequest, saveEmployee
 } from '../../services/databaseServices';
 import type { Employee, ProductionCell, BlockedPeriod, VacationRequest, RiskLevel, VacationRequestStatus } from '../../types';
 import { calculateVacationDays, validateBlockedPeriod, detectVacationOverlap } from '../../services/vacationRules';
 import { analyzeCellAvailability } from '../../services/capacityEngine';
 import { ChevronLeft, Calendar, User, ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 
 export const VacationRequestPage: React.FC = () => {
   const { currentUser } = useAppStore();
@@ -181,6 +183,17 @@ export const VacationRequestPage: React.FC = () => {
 
     try {
       await saveVacationRequest(requestObj, currentUser);
+      
+      const empRef = doc(db, 'employees', emp.id);
+      const empSnap = await getDoc(empRef);
+      if (empSnap.exists()) {
+        const empData = empSnap.data();
+        await saveEmployee({
+          ...empData,
+          pending_vacation_days: (empData.pending_vacation_days || 0) + simDays
+        } as any, currentUser);
+      }
+
       navigate('/vacations');
     } catch (err: any) {
       console.error(err);

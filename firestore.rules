@@ -77,10 +77,29 @@ service cloud.firestore {
     // users
     match /users/{userId} {
       allow read: if isSignedIn() && (isOwnDocument(userId) || (isActiveUser() && (isAdmin() || isHR() || isManager())));
-      // O próprio usuário pode atualizar seu login, mas papéis e status só admin/hr podem escrever.
-      allow create: if isSignedIn();
+      
+      // Permitir criação se o usuário estiver criando seu próprio perfil e os dados baterem com o e-mail autorizado
+      allow create: if isSignedIn() && isOwnDocument(userId) && 
+        exists(/databases/$(database)/documents/allowed_emails/$(request.resource.data.normalized_email)) &&
+        request.resource.data.role == get(/databases/$(database)/documents/allowed_emails/$(request.resource.data.normalized_email)).data.role &&
+        request.resource.data.status == 'active';
+        
+      // O próprio usuário pode atualizar seu login/perfil básico, mas não pode alterar permissões ou papel.
       allow update: if isActiveUser() && (
-        isOwnDocument(userId) || 
+        (isOwnDocument(userId) && 
+         request.resource.data.role == resource.data.role && 
+         request.resource.data.status == resource.data.status && 
+         request.resource.data.company_id == resource.data.company_id &&
+         (!('allowed_team_ids' in request.resource.data) || request.resource.data.allowed_team_ids == resource.data.allowed_team_ids) &&
+         (!('allowed_cell_ids' in request.resource.data) || request.resource.data.allowed_cell_ids == resource.data.allowed_cell_ids) &&
+         (!('allowed_employee_ids' in request.resource.data) || request.resource.data.allowed_employee_ids == resource.data.allowed_employee_ids) &&
+         (!('can_view_all_company' in request.resource.data) || request.resource.data.can_view_all_company == resource.data.can_view_all_company) &&
+         (!('can_view_all_business_unit' in request.resource.data) || request.resource.data.can_view_all_business_unit == resource.data.can_view_all_business_unit) &&
+         (!('can_view_all_cells' in request.resource.data) || request.resource.data.can_view_all_cells == resource.data.can_view_all_cells) &&
+         (!('can_view_all_teams' in request.resource.data) || request.resource.data.can_view_all_teams == resource.data.can_view_all_teams) &&
+         (!('can_approve' in request.resource.data) || request.resource.data.can_approve == resource.data.can_approve) &&
+         (!('approval_level' in request.resource.data) || request.resource.data.approval_level == resource.data.approval_level)
+        ) || 
         isAdmin() || 
         (isHR() && request.resource.data.role != 'admin')
       );
@@ -107,20 +126,33 @@ service cloud.firestore {
 
     // teams
     match /teams/{teamId} {
-      allow read: if isActiveUser() && (isAdmin() || belongsToCompany(resource.data.company_id));
-      allow write: if isActiveUser() && (isAdmin() || isHR() || isManager());
+      allow read: if isActiveUser() && (
+        isAdmin() || isHR() || isManager() || belongsToCompany(resource.data.company_id)
+      );
+      allow write: if isActiveUser() && (
+        isAdmin() || isHR() || isManager() || 
+        (isSupervisor() && request.resource.data.owner_supervisor_id == request.auth.uid)
+      );
     }
 
     // employees
     match /employees/{employeeId} {
       allow read: if isActiveUser() && (
         isAdmin() || isHR() || isManager() || isViewer() ||
-        (isSupervisor() && hasTeamAccess(resource.data.team_id)) ||
+        (isSupervisor() && (
+          resource.data.owner_supervisor_id == request.auth.uid ||
+          (resource.data.team_id in getUserData().allowed_team_ids) ||
+          (resource.data.id in getUserData().allowed_employee_ids)
+        )) ||
         (isUserRole() && resource.data.email == request.auth.token.email)
       );
       allow write: if isActiveUser() && (
         isAdmin() || isHR() ||
-        (isSupervisor() && hasTeamAccess(request.resource.data.team_id))
+        (isSupervisor() && (
+          // Impede supervisor de gravar colaborador fora da equipe dele
+          request.resource.data.owner_supervisor_id == request.auth.uid ||
+          (request.resource.data.team_id in getUserData().allowed_team_ids)
+        ))
       );
     }
 
@@ -128,12 +160,19 @@ service cloud.firestore {
     match /vacation_requests/{requestId} {
       allow read: if isActiveUser() && (
         isAdmin() || isHR() || isManager() || isViewer() ||
-        (isSupervisor() && hasTeamAccess(resource.data.team_id)) ||
+        (isSupervisor() && (
+          resource.data.owner_supervisor_id == request.auth.uid ||
+          (resource.data.team_id in getUserData().allowed_team_ids) ||
+          (resource.data.employee_id in getUserData().allowed_employee_ids)
+        )) ||
         (isUserRole() && resource.data.requester_user_id == request.auth.uid)
       );
       allow write: if isActiveUser() && (
         isAdmin() || isHR() ||
-        (isSupervisor() && hasTeamAccess(request.resource.data.team_id)) ||
+        (isSupervisor() && (
+          request.resource.data.owner_supervisor_id == request.auth.uid ||
+          (request.resource.data.team_id in getUserData().allowed_team_ids)
+        )) ||
         (isUserRole() && request.resource.data.requester_user_id == request.auth.uid)
       );
     }
@@ -142,11 +181,18 @@ service cloud.firestore {
     match /absence_records/{recordId} {
       allow read: if isActiveUser() && (
         isAdmin() || isHR() || isManager() || isViewer() ||
-        (isSupervisor() && hasTeamAccess(resource.data.team_id))
+        (isSupervisor() && (
+          resource.data.owner_supervisor_id == request.auth.uid ||
+          (resource.data.team_id in getUserData().allowed_team_ids) ||
+          (resource.data.employee_id in getUserData().allowed_employee_ids)
+        ))
       );
       allow write: if isActiveUser() && (
         isAdmin() || isHR() ||
-        (isSupervisor() && hasTeamAccess(request.resource.data.team_id))
+        (isSupervisor() && (
+          request.resource.data.owner_supervisor_id == request.auth.uid ||
+          (request.resource.data.team_id in getUserData().allowed_team_ids)
+        ))
       );
     }
 
@@ -187,8 +233,8 @@ service cloud.firestore {
     // system_logs
     match /system_logs/{logId} {
       allow read: if isActiveUser() && (isAdmin() || isHR() || isManager());
-      allow create: if isSignedIn(); // Qualquer alteração de dados gera log.
-      allow update, delete: if false; // Logs são imutáveis.
+      allow create: if isSignedIn();
+      allow update, delete: if false;
     }
 
     // settings

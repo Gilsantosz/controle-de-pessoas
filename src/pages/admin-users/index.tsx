@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { 
   getUsersList, getAllowedEmails, saveAllowedEmail, 
-  updateUserProfile, getTeams 
+  updateUserProfile, getTeams, getCells, getEmployees
 } from '../../services/databaseServices';
-import type { UserProfile, AllowedEmail, Team, UserRole, UserStatus } from '../../types';
+import type { UserProfile, AllowedEmail, Team, ProductionCell, Employee, UserRole, UserStatus } from '../../types';
 import { DataTable } from '../../components/tables/DataTable';
 import { RiskBadge } from '../../components/feedback/RiskBadge';
 import { Plus, X, Shield, Users } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 
 export const AdminUsersPage: React.FC = () => {
   const { currentUser } = useAppStore();
@@ -15,6 +17,8 @@ export const AdminUsersPage: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [allowedEmails, setAllowedEmails] = useState<AllowedEmail[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [cells, setCells] = useState<ProductionCell[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,20 +35,29 @@ export const AdminUsersPage: React.FC = () => {
   const [editStatus, setEditStatus] = useState<UserStatus>('active');
   const [editCellIds, setEditCellIds] = useState<string[]>([]);
   const [editTeamIds, setEditTeamIds] = useState<string[]>([]);
+  const [editEmployeeIds, setEditEmployeeIds] = useState<string[]>([]);
   const [editCanApprove, setEditCanApprove] = useState(false);
+  const [editCanViewAllCompany, setEditCanViewAllCompany] = useState(false);
+  const [editCanViewAllBU, setEditCanViewAllBU] = useState(false);
+  const [editCanViewAllCells, setEditCanViewAllCells] = useState(false);
+  const [editCanViewAllTeams, setEditCanViewAllTeams] = useState(false);
 
   const loadData = async () => {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const [usersData, allowedData, teamsData] = await Promise.all([
+      const [usersData, allowedData, teamsData, cellsData, employeesData] = await Promise.all([
         getUsersList(currentUser),
         getAllowedEmails(currentUser),
-        getTeams(currentUser)
+        getTeams(currentUser),
+        getCells(currentUser),
+        getEmployees(currentUser)
       ]);
       setUsers(usersData);
       setAllowedEmails(allowedData);
       setTeams(teamsData);
+      setCells(cellsData);
+      setAllEmployees(employeesData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -101,7 +114,12 @@ export const AdminUsersPage: React.FC = () => {
     setEditStatus(user.status);
     setEditCellIds(user.allowed_cell_ids || []);
     setEditTeamIds(user.allowed_team_ids || []);
+    setEditEmployeeIds(user.allowed_employee_ids || []);
     setEditCanApprove(user.can_approve || false);
+    setEditCanViewAllCompany(user.can_view_all_company || false);
+    setEditCanViewAllBU(user.can_view_all_business_unit || false);
+    setEditCanViewAllCells(user.can_view_all_cells || false);
+    setEditCanViewAllTeams(user.can_view_all_teams || false);
   };
 
   const handleSaveUserEdit = async (e: React.FormEvent) => {
@@ -116,12 +134,46 @@ export const AdminUsersPage: React.FC = () => {
     }
 
     try {
+      let finalTeamIds = [...editTeamIds];
+      let finalCellIds = [...editCellIds];
+
+      if (editRole === 'supervisor' && finalTeamIds.length === 0) {
+        const supervisorName = selectedUser.name;
+        const ownTeamId = `team_own_${selectedUser.uid}`;
+        const teamDocRef = doc(db, 'teams', ownTeamId);
+        
+        await setDoc(teamDocRef, {
+          id: ownTeamId,
+          company_id: selectedUser.company_id || currentUser.company_id,
+          business_unit_id: 'bu_industrial',
+          cell_id: 'cell_solda',
+          name: `Equipe de ${supervisorName}`,
+          description: `Equipe própria de ${supervisorName}`,
+          shift: 'morning',
+          supervisor_ids: [selectedUser.uid],
+          owner_supervisor_id: selectedUser.uid,
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        
+        finalTeamIds.push(ownTeamId);
+        if (!finalCellIds.includes('cell_solda')) {
+          finalCellIds.push('cell_solda');
+        }
+      }
+
       const updatedProfile = {
         uid: selectedUser.uid,
         role: editRole,
         status: editStatus,
-        allowed_cell_ids: editCellIds,
-        allowed_team_ids: editTeamIds,
+        allowed_cell_ids: finalCellIds,
+        allowed_team_ids: finalTeamIds,
+        allowed_employee_ids: editEmployeeIds,
+        can_view_all_company: editCanViewAllCompany,
+        can_view_all_business_unit: editCanViewAllBU,
+        can_view_all_cells: editCanViewAllCells,
+        can_view_all_teams: editCanViewAllTeams,
         can_approve: editCanApprove,
         approval_level: editRole === 'admin' ? 3 : (editRole === 'manager' ? 2 : 1)
       };
@@ -400,28 +452,116 @@ export const AdminUsersPage: React.FC = () => {
                 </label>
               </div>
 
-              {editRole === 'supervisor' && (
-                <div>
-                  <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Vincular Equipes Permitidas</label>
-                  <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-48 overflow-y-auto">
-                    {teams.map(t => (
-                      <div 
-                        key={t.id}
-                        onClick={() => handleToggleTeam(editTeamIds, setEditTeamIds, t.id)}
-                        className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
-                      >
-                        <span>{t.name}</span>
-                        <input
-                          type="checkbox"
-                          checked={editTeamIds.includes(t.id)}
-                          readOnly
-                          className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
-                        />
-                      </div>
-                    ))}
-                  </div>
+              <div className="space-y-3 p-4 bg-[#F7F8FC] rounded-2xl border border-[#E8ECF2]">
+                <h4 className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider mb-2">Visualização Global (ABAC)</h4>
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="view_all_company"
+                    checked={editCanViewAllCompany}
+                    onChange={(e) => setEditCanViewAllCompany(e.target.checked)}
+                    className="w-4 h-4 text-[#6254E8]"
+                  />
+                  <label htmlFor="view_all_company" className="text-xs font-semibold text-[#0F172A] cursor-pointer">Ver Toda Empresa</label>
                 </div>
-              )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="view_all_bu"
+                    checked={editCanViewAllBU}
+                    onChange={(e) => setEditCanViewAllBU(e.target.checked)}
+                    className="w-4 h-4 text-[#6254E8]"
+                  />
+                  <label htmlFor="view_all_bu" className="text-xs font-semibold text-[#0F172A] cursor-pointer">Ver Toda Unidade de Negócio</label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="view_all_cells"
+                    checked={editCanViewAllCells}
+                    onChange={(e) => setEditCanViewAllCells(e.target.checked)}
+                    className="w-4 h-4 text-[#6254E8]"
+                  />
+                  <label htmlFor="view_all_cells" className="text-xs font-semibold text-[#0F172A] cursor-pointer">Ver Todas as Células</label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="view_all_teams"
+                    checked={editCanViewAllTeams}
+                    onChange={(e) => setEditCanViewAllTeams(e.target.checked)}
+                    className="w-4 h-4 text-[#6254E8]"
+                  />
+                  <label htmlFor="view_all_teams" className="text-xs font-semibold text-[#0F172A] cursor-pointer">Ver Todas as Equipes</label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Células Permitidas</label>
+                <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
+                  {cells.map(c => (
+                    <div 
+                      key={c.id}
+                      onClick={() => handleToggleTeam(editCellIds, setEditCellIds, c.id)}
+                      className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                    >
+                      <span>{c.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={editCellIds.includes(c.id)}
+                        readOnly
+                        className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Vincular Equipes Permitidas</label>
+                <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
+                  {teams.map(t => (
+                    <div 
+                      key={t.id}
+                      onClick={() => handleToggleTeam(editTeamIds, setEditTeamIds, t.id)}
+                      className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                    >
+                      <span>{t.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={editTeamIds.includes(t.id)}
+                        readOnly
+                        className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Colaboradores Específicos Permitidos</label>
+                <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
+                  {allEmployees.map(emp => (
+                    <div 
+                      key={emp.id}
+                      onClick={() => handleToggleTeam(editEmployeeIds, setEditEmployeeIds, emp.id)}
+                      className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                    >
+                      <span>{emp.name} ({emp.registration})</span>
+                      <input
+                        type="checkbox"
+                        checked={editEmployeeIds.includes(emp.id)}
+                        readOnly
+                        className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="p-6 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-end gap-3">

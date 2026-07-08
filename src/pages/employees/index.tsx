@@ -123,7 +123,7 @@ export const EmployeesPage: React.FC = () => {
       header: "Ações",
       accessor: (row: Employee) => (
         <div className="flex items-center gap-2">
-          {currentUser && ['admin', 'hr', 'manager'].includes(currentUser.role) && (
+          {currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) && (
             <button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -174,7 +174,7 @@ export const EmployeesPage: React.FC = () => {
             Gerenciamento de fichas cadastrais, saldos de férias acumulados e prazos legais de concessão.
           </p>
         </div>
-        {currentUser && ['admin', 'hr'].includes(currentUser.role) && (
+        {currentUser && ['admin', 'hr', 'supervisor'].includes(currentUser.role) && (
           <button 
             onClick={() => navigate('/employees/new')}
             className="premium-button-primary shrink-0 self-start sm:self-auto"

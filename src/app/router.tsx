@@ -24,6 +24,7 @@ import { NotificationsPage } from '../pages/notifications';
 import { ReportsPage } from '../pages/reports';
 import { AdminUsersPage } from '../pages/admin-users';
 import { SettingsPage } from '../pages/settings';
+import { RhCrossCheckPage } from '../pages/rh-crosscheck';
 
 // Guard para proteger rotas autenticadas
 interface ProtectedRouteProps {
@@ -83,6 +84,7 @@ export const router = createBrowserRouter([
       { path: 'operations', element: <OperationsPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'reports', element: <ReportsPage /> },
+      { path: 'rh-crosscheck', element: <RhCrossCheckPage /> },
       { path: 'admin/users', element: <AdminUsersPage /> },
       { path: 'settings', element: <SettingsPage /> }
     ]

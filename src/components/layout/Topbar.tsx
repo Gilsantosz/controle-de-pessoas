@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Search, Check, ShieldAlert } from 'lucide-react';
+import { Bell, Search, Check, ShieldAlert, Menu } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { getNotifications, markNotificationAsRead } from '../../services/databaseServices';
 import type { Notification } from '../../types';
@@ -7,7 +7,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const Topbar: React.FC = () => {
-  const { currentUser } = useAppStore();
+  const { currentUser, setMobileSidebarOpen, mobileSidebarOpen } = useAppStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -56,11 +56,18 @@ export const Topbar: React.FC = () => {
   };
 
   return (
-    <header className="h-20 bg-white border-b border-[#E8ECF2] flex items-center justify-between px-8 z-20 shrink-0 select-none">
+    <header className="h-20 bg-white border-b border-[#E8ECF2] flex items-center justify-between px-4 md:px-8 z-20 shrink-0 select-none">
       
-      {/* LADO ESQUERDO: SAUDAÇÃO OU TÍTULO DISCRETO */}
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-bold text-[#8A94A6] uppercase tracking-wider">
+      {/* LADO ESQUERDO: HAMBURGUER (MOBILE) + SAUDAÇÃO */}
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center text-[#5A6A85] hover:text-[#0F172A] hover:bg-[#F6F8FB] border border-[#E8ECF2]/50 active:scale-95 transition-all"
+          title="Abrir menu"
+        >
+          <Menu size={18} />
+        </button>
+        <span className="text-[10px] md:text-[11px] font-bold text-[#8A94A6] uppercase tracking-wider truncate max-w-[160px] sm:max-w-none">
           VacationPro Célula Industrial
         </span>
       </div>

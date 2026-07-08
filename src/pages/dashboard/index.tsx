@@ -241,7 +241,7 @@ export const DashboardPage: React.FC = () => {
               <button className="text-[#8A94A6] hover:text-[#0F172A]"><MoreHorizontal size={18} /></button>
             </div>
 
-            <div className="grid grid-cols-5 gap-2 border-b border-[#F6F8FB] pb-4 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 border-b border-[#F6F8FB] pb-4 mb-4">
               <div>
                 <p className="text-[10px] font-semibold text-[#8A94A6] leading-tight">Total de Colaboradores</p>
                 <p className="text-lg font-bold text-[#0F172A] mt-1">{fmt(totalEmployees)}</p>
@@ -413,7 +413,7 @@ export const DashboardPage: React.FC = () => {
         <div className="lg:col-span-4 flex flex-col gap-6">
 
           {/* Solicitações de Férias */}
-          <div className="bg-white rounded-[32px] border border-[#E8ECF2]/50 shadow-[0_10px_30px_rgba(0,0,0,0.02)] p-6 flex items-center justify-between h-[163px] relative">
+          <div className="bg-white rounded-[32px] border border-[#E8ECF2]/50 shadow-[0_10px_30px_rgba(0,0,0,0.02)] p-6 flex flex-col sm:flex-row items-center justify-between min-h-[163px] sm:h-[163px] gap-4 relative">
             <div>
               <span className="text-xs font-bold text-[#0F172A]">Solicitações de Férias</span>
               <h4 className="text-3xl font-extrabold text-[#0F172A] tracking-tight mt-2.5">{fmt(totalRequests)}</h4>
@@ -443,7 +443,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* Colaboradores por Status */}
-          <div className="bg-white rounded-[32px] border border-[#E8ECF2]/50 shadow-[0_10px_30px_rgba(0,0,0,0.02)] p-6 flex items-center justify-between h-[163px] relative">
+          <div className="bg-white rounded-[32px] border border-[#E8ECF2]/50 shadow-[0_10px_30px_rgba(0,0,0,0.02)] p-6 flex flex-col sm:flex-row items-center justify-between min-h-[163px] sm:h-[163px] gap-4 relative">
             <div>
               <span className="text-xs font-bold text-[#0F172A]">Colaboradores Ativos</span>
               <h4 className="text-3xl font-extrabold text-[#0F172A] tracking-tight mt-2.5">{fmt(activeCount)}</h4>

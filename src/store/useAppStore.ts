@@ -17,6 +17,8 @@ interface AppState {
   setIsAuthLoading: (loading: boolean) => void;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  mobileSidebarOpen: boolean;
+  setMobileSidebarOpen: (open: boolean) => void;
   
   logout: () => Promise<void>;
 }
@@ -28,6 +30,7 @@ export const useAppStore = create<AppState>((set) => ({
   notifications: [],
   isAuthLoading: true,
   sidebarCollapsed: false,
+  mobileSidebarOpen: false,
 
   setCurrentUser: (user) => set({ currentUser: user }),
   setCurrentCompany: (company) => set({ currentCompany: company }),
@@ -35,6 +38,7 @@ export const useAppStore = create<AppState>((set) => ({
   setNotifications: (notifications) => set({ notifications }),
   setIsAuthLoading: (loading) => set({ isAuthLoading: loading }),
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+  setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 
   logout: async () => {
     await signOut(auth);
@@ -44,7 +48,8 @@ export const useAppStore = create<AppState>((set) => ({
       currentSettings: null,
       notifications: [],
       isAuthLoading: false,
-      sidebarCollapsed: false
+      sidebarCollapsed: false,
+      mobileSidebarOpen: false
     });
   }
 }));

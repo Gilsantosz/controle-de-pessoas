@@ -1,9 +1,11 @@
-const CACHE_NAME = 'vacationpro-cache-v2';
+const CACHE_NAME = 'vacationpro-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
-  './favicon.svg'
+  './favicon.svg',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {

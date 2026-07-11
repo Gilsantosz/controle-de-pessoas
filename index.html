@@ -19,6 +19,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Captura antecipada do prompt de instalação PWA (antes do React montar) -->
+    <script>
+      window.__pwaPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaPrompt = e;
+        // Dispara evento customizado para o React escutar (caso já tenha montado)
+        window.dispatchEvent(new CustomEvent('pwa-installable', { detail: e }));
+      });
+      window.addEventListener('appinstalled', function() {
+        window.__pwaPrompt = null;
+        window.dispatchEvent(new CustomEvent('pwa-installed'));
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

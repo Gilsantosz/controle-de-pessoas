@@ -28,6 +28,7 @@ export const AdminUsersPage: React.FC = () => {
   const [wRole, setWRole] = useState<UserRole>('supervisor');
   const [wCellIds, setWCellIds] = useState<string[]>([]);
   const [wTeamIds, setWTeamIds] = useState<string[]>([]);
+  const [wEmployeeIds, setWEmployeeIds] = useState<string[]>([]);
 
   // User Edit Form states
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -89,6 +90,7 @@ export const AdminUsersPage: React.FC = () => {
       company_id: currentUser.company_id,
       allowed_cell_ids: wCellIds,
       allowed_team_ids: wTeamIds,
+      allowed_employee_ids: wEmployeeIds,
       created_at: new Date().toISOString(),
       created_by: currentUser.email,
       updated_at: new Date().toISOString(),
@@ -100,6 +102,7 @@ export const AdminUsersPage: React.FC = () => {
       setWEmail('');
       setWCellIds([]);
       setWTeamIds([]);
+      setWEmployeeIds([]);
       setShowAddWhitelist(false);
       loadData();
     } catch (err) {
@@ -317,7 +320,7 @@ export const AdminUsersPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[420px]">
               <div>
                 <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">E-mail Corporativo</label>
                 <input
@@ -346,27 +349,71 @@ export const AdminUsersPage: React.FC = () => {
                 </select>
               </div>
 
-              {wRole === 'supervisor' && (
-                <div>
-                  <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Vincular Equipes Permitidas</label>
-                  <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
-                    {teams.map(t => (
-                      <div 
-                        key={t.id}
-                        onClick={() => handleToggleTeam(wTeamIds, setWTeamIds, t.id)}
-                        className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
-                      >
-                        <span>{t.name}</span>
-                        <input
-                          type="checkbox"
-                          checked={wTeamIds.includes(t.id)}
-                          readOnly
-                          className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
-                        />
-                      </div>
-                    ))}
+              {['supervisor', 'user', 'viewer'].includes(wRole) && (
+                <>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Vincular Células Permitidas</label>
+                    <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-28 overflow-y-auto">
+                      {cells.map(c => (
+                        <div 
+                          key={c.id}
+                          onClick={() => handleToggleTeam(wCellIds, setWCellIds, c.id)}
+                          className="p-2 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                        >
+                          <span>{c.name}</span>
+                          <input
+                            type="checkbox"
+                            checked={wCellIds.includes(c.id)}
+                            readOnly
+                            className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Vincular Equipes Permitidas</label>
+                    <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-28 overflow-y-auto">
+                      {teams.map(t => (
+                        <div 
+                          key={t.id}
+                          onClick={() => handleToggleTeam(wTeamIds, setWTeamIds, t.id)}
+                          className="p-2 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                        >
+                          <span>{t.name}</span>
+                          <input
+                            type="checkbox"
+                            checked={wTeamIds.includes(t.id)}
+                            readOnly
+                            className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Vincular Colaborador Específico</label>
+                    <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-28 overflow-y-auto">
+                      {allEmployees.map(emp => (
+                        <div 
+                          key={emp.id}
+                          onClick={() => handleToggleTeam(wEmployeeIds, setWEmployeeIds, emp.id)}
+                          className="p-2 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                        >
+                          <span>{emp.name} ({emp.registration})</span>
+                          <input
+                            type="checkbox"
+                            checked={wEmployeeIds.includes(emp.id)}
+                            readOnly
+                            className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 

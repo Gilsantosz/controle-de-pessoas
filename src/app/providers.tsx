@@ -91,6 +91,7 @@ export const AppProviders: React.FC<ProvidersProps> = ({ children }) => {
               business_unit_ids: ['bu_industrial'],
               allowed_cell_ids: updatedAllowedCellIds,
               allowed_team_ids: updatedAllowedTeamIds,
+              allowed_employee_ids: allowedData.allowed_employee_ids || [],
               can_view_all_company: ['admin', 'manager'].includes(allowedData.role),
               can_view_all_business_unit: ['admin', 'manager', 'hr'].includes(allowedData.role),
               can_view_all_cells: ['admin', 'manager', 'hr'].includes(allowedData.role),

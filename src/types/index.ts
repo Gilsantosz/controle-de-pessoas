@@ -39,6 +39,7 @@ export interface AllowedEmail {
   company_id: string;
   allowed_cell_ids: string[];
   allowed_team_ids: string[];
+  allowed_employee_ids: string[];
   created_at: string;
   created_by: string;
   updated_at: string;

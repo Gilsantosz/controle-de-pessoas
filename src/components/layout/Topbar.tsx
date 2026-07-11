@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Search, Check, ShieldAlert, Menu } from 'lucide-react';
+import { Bell, Search, Check, ShieldAlert, Menu, Download } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { getNotifications, markNotificationAsRead } from '../../services/databaseServices';
 import type { Notification } from '../../types';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 
 export const Topbar: React.FC = () => {
   const { currentUser, setMobileSidebarOpen, mobileSidebarOpen } = useAppStore();
+  const { isInstallable, isInstalled, install } = usePwaInstall();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -73,7 +75,19 @@ export const Topbar: React.FC = () => {
       </div>
 
       {/* LADO DIREITO: PESQUISA E NOTIFICAÇÕES */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
+
+        {/* BOTÃO INSTALAR PWA */}
+        {isInstallable && !isInstalled && (
+          <button
+            onClick={install}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#6254E8] to-[#FF9A3E] text-white text-[10px] font-bold shadow-md hover:shadow-lg hover:opacity-90 active:scale-95 transition-all animate-in fade-in slide-in-from-top-2 duration-300"
+            title="Instalar o app VacationPro no seu dispositivo"
+          >
+            <Download size={13} className="shrink-0" />
+            <span className="hidden xs:inline">Instalar App</span>
+          </button>
+        )}
         
         {/* ÍCONE DE PESQUISA */}
         <button className="w-9 h-9 rounded-full bg-[#F3F4F6]/50 hover:bg-[#F3F4F6] border border-slate-100 flex items-center justify-center text-[#5A6A85] hover:text-[#0F172A] transition-all">

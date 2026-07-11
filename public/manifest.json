@@ -4,15 +4,38 @@
   "description": "Plataforma de gestão estratégica de férias, absenteísmo e capacidade produtiva industrial.",
   "icons": [
     {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
       "src": "favicon.svg",
       "type": "image/svg+xml",
       "sizes": "any",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
-  "start_url": ".",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "theme_color": "#6254E8",
   "background_color": "#F6F8FB",
-  "orientation": "portrait"
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "categories": ["productivity", "business"],
+  "prefer_related_applications": false
 }

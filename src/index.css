@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  --breakpoint-xs: 480px;
   --color-bg-general: #F3F3F3;
   --color-card-bg: #FFFFFF;
   --color-border-light: #E8ECF2;

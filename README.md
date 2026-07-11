@@ -30,3 +30,15 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## 🚀 Conectividade do Banco de Dados Online (Firebase)
+
+Este projeto está integrado com o **Firebase (Firestore e Authentication)**.
+
+### Ambiente Local
+1. Crie um arquivo `.env` na raiz do projeto com as chaves reais de conexão obtidas no Firebase Console.
+
+### Produção (GitHub Pages)
+1. Cadastre as 6 chaves de configuração do Firebase em **Settings -> Secrets and variables -> Actions** como secrets do repositório.
+2. O workflow de deploy injetará automaticamente estas variáveis no build de produção.
+

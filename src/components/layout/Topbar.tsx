@@ -1,17 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, Search, Check, ShieldAlert, Menu, Download } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Bell, Search, Check, ShieldAlert, Menu, Download, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { getNotifications, markNotificationAsRead } from '../../services/databaseServices';
 import type { Notification } from '../../types';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
+import { useNavigate } from 'react-router-dom';
 
 export const Topbar: React.FC = () => {
   const { currentUser, setMobileSidebarOpen, mobileSidebarOpen } = useAppStore();
   const { isInstallable, isInstalled, install } = usePwaInstall();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -30,6 +35,24 @@ export const Topbar: React.FC = () => {
     const interval = setInterval(loadNotifications, 15000);
     return () => clearInterval(interval);
   }, [currentUser]);
+
+  useEffect(() => {
+    if (searchOpen && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [searchOpen]);
+
+  const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      navigate(`/employees?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+      setSearchOpen(false);
+    }
+    if (e.key === 'Escape') {
+      setSearchQuery('');
+      setSearchOpen(false);
+    }
+  };
 
   if (!currentUser) return null;
 
@@ -89,10 +112,32 @@ export const Topbar: React.FC = () => {
           </button>
         )}
         
-        {/* ÍCONE DE PESQUISA */}
-        <button className="w-9 h-9 rounded-full bg-[#F3F4F6]/50 hover:bg-[#F3F4F6] border border-slate-100 flex items-center justify-center text-[#5A6A85] hover:text-[#0F172A] transition-all">
-          <Search size={16} />
-        </button>
+        {/* BARRA DE PESQUISA / ÍCONE DE PESQUISA */}
+        {searchOpen ? (
+          <div className="flex items-center gap-1.5 bg-[#F6F8FB] border border-[#E8ECF2] rounded-xl px-3 h-9 animate-in fade-in slide-in-from-right-2 duration-200">
+            <Search size={14} className="text-[#8A94A6] shrink-0" />
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchSubmit}
+              placeholder="Buscar colaborador..."
+              className="bg-transparent text-xs text-[#0F172A] placeholder-[#8A94A6] outline-none w-36 md:w-48"
+            />
+            <button onClick={() => { setSearchOpen(false); setSearchQuery(''); }} className="text-[#8A94A6] hover:text-[#0F172A]">
+              <X size={13} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setSearchOpen(true)}
+            title="Pesquisar colaborador"
+            className="w-9 h-9 rounded-full bg-[#F3F4F6]/50 hover:bg-[#F3F4F6] border border-slate-100 flex items-center justify-center text-[#5A6A85] hover:text-[#0F172A] transition-all"
+          >
+            <Search size={16} />
+          </button>
+        )}
 
         {/* NOTIFICAÇÕES BELL */}
         <div className="relative">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { getEmployees, getCells, getTeams } from '../../services/databaseServices';
 import type { Employee, ProductionCell, Team } from '../../types';
@@ -11,6 +11,7 @@ import { format, parseISO } from 'date-fns';
 export const EmployeesPage: React.FC = () => {
   const { currentUser } = useAppStore();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [cells, setCells] = useState<ProductionCell[]>([]);
@@ -18,6 +19,10 @@ export const EmployeesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Filtros locais
+  const [searchText, setSearchText] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('search') || '';
+  });
   const [cellFilter, setCellFilter] = useState('');
   const [teamFilter, setTeamFilter] = useState('');
   const [shiftFilter, setShiftFilter] = useState('');
@@ -45,13 +50,22 @@ export const EmployeesPage: React.FC = () => {
     loadData();
   }, [currentUser]);
 
+  // Atualizar searchText quando a URL mudar (ex: pesquisa global da topbar)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('search');
+    if (q) setSearchText(q);
+  }, [location.search]);
+
   // Aplicar filtros
   const filteredEmployees = employees.filter(emp => {
+    const q = searchText.toLowerCase();
+    const matchSearch = !q || emp.name.toLowerCase().includes(q) || emp.registration.toLowerCase().includes(q) || (emp.role || '').toLowerCase().includes(q);
     const matchCell = !cellFilter || emp.cell_id === cellFilter;
     const matchTeam = !teamFilter || emp.team_id === teamFilter;
     const matchShift = !shiftFilter || emp.shift === shiftFilter;
     const matchStatus = !statusFilter || emp.status === statusFilter;
-    return matchCell && matchTeam && matchShift && matchStatus;
+    return matchSearch && matchCell && matchTeam && matchShift && matchStatus;
   });
 
   const columns = [

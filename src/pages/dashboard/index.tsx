@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import {
   getEmployees, getCells, getAlerts, getVacationRequests, getAbsenceRecords
@@ -10,11 +10,21 @@ import {
 import {
   WidgetCatalogModal, WidgetGrid, useWidgets
 } from '../../components/cards/WidgetPanel';
+import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
   const { currentUser } = useAppStore();
+  const navigate = useNavigate();
   const { activeWidgets, modalOpen, setModalOpen, toggleWidget, removeWidget } = useWidgets();
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, []);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [cells, setCells] = useState<ProductionCell[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -194,20 +204,36 @@ export const DashboardPage: React.FC = () => {
           <h2 className="text-3xl font-bold text-[#0F172A] tracking-tight">
             {currentUser?.role === 'supervisor' ? 'Dashboard da Minha Equipe' : 'Dashboard Geral da Operação'}
           </h2>
-          <button className="w-8 h-8 rounded-full bg-white hover:bg-slate-50 border border-slate-100 flex items-center justify-center text-[#5A6A85] hover:text-[#0F172A] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all">
+          <button
+            onClick={handleCopyLink}
+            title={copied ? 'Link copiado!' : 'Copiar link do dashboard'}
+            className={`w-8 h-8 rounded-full border flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all ${
+              copied
+                ? 'bg-[#DDFBF5] border-[#0EAD98] text-[#0EAD98]'
+                : 'bg-white hover:bg-slate-50 border-slate-100 text-[#5A6A85] hover:text-[#0F172A]'
+            }`}
+          >
             <Link2 size={14} className="transform -rotate-45" />
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-white border border-[#E8ECF2] px-3.5 py-2 rounded-full text-xs font-semibold text-[#0F172A] shadow-sm cursor-pointer hover:bg-slate-50 transition-all">
+          <button
+            onClick={() => navigate('/calendar')}
+            title="Ver calendário operacional"
+            className="flex items-center gap-1.5 bg-white border border-[#E8ECF2] px-3.5 py-2 rounded-full text-xs font-semibold text-[#0F172A] shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
+          >
             <Calendar size={13} className="text-[#5A6A85]" />
             <span>Jan – Dez / {currentYear}</span>
             <ChevronDown size={12} className="text-[#5A6A85]" />
-          </div>
-          <div className="flex items-center gap-1.5 bg-white border border-[#E8ECF2] px-3.5 py-2 rounded-full text-xs font-semibold text-[#0F172A] shadow-sm cursor-pointer hover:bg-slate-50 transition-all">
+          </button>
+          <button
+            onClick={() => navigate('/reports')}
+            title="Ver relatórios"
+            className="flex items-center gap-1.5 bg-white border border-[#E8ECF2] px-3.5 py-2 rounded-full text-xs font-semibold text-[#0F172A] shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
+          >
             <span>Mensal</span>
             <ChevronDown size={12} className="text-[#5A6A85]" />
-          </div>
+          </button>
           <button
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-1 bg-[#6254E8] hover:bg-[#5145CD] text-white px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm cursor-pointer"
@@ -245,7 +271,13 @@ export const DashboardPage: React.FC = () => {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-sm font-bold text-[#0F172A]">Disponibilidade da Força de Trabalho</h3>
-              <button className="text-[#8A94A6] hover:text-[#0F172A]"><MoreHorizontal size={18} /></button>
+              <button
+                onClick={() => navigate('/vacations')}
+                title="Ver detalhes de férias"
+                className="text-[#8A94A6] hover:text-[#0F172A] transition-all"
+              >
+                <MoreHorizontal size={18} />
+              </button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 border-b border-[#F6F8FB] pb-4 mb-4">
@@ -336,7 +368,13 @@ export const DashboardPage: React.FC = () => {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-sm font-bold text-[#0F172A]">Capacidade Planejada</h3>
-              <button className="text-[#8A94A6] hover:text-[#0F172A]"><MoreHorizontal size={18} /></button>
+              <button
+                onClick={() => navigate('/capacity')}
+                title="Ver capacidade planejada"
+                className="text-[#8A94A6] hover:text-[#0F172A] transition-all"
+              >
+                <MoreHorizontal size={18} />
+              </button>
             </div>
 
             <div className="flex items-baseline gap-2 mb-8">
@@ -389,7 +427,13 @@ export const DashboardPage: React.FC = () => {
           <div>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-bold text-[#0F172A]">Aderência à Escala</h3>
-              <button className="text-[#8A94A6] hover:text-[#0F172A]"><MoreHorizontal size={18} /></button>
+              <button
+                onClick={() => navigate('/calendar')}
+                title="Ver aderência à escala"
+                className="text-[#8A94A6] hover:text-[#0F172A] transition-all"
+              >
+                <MoreHorizontal size={18} />
+              </button>
             </div>
 
             <div className="relative h-48 w-full mt-2">
@@ -446,7 +490,13 @@ export const DashboardPage: React.FC = () => {
                 })}
               </svg>
             </div>
-            <button className="absolute top-6 right-6 text-[#8A94A6] hover:text-[#0F172A]"><MoreHorizontal size={18} /></button>
+            <button
+              onClick={() => navigate('/approvals')}
+              title="Ver solicitações de férias"
+              className="absolute top-6 right-6 text-[#8A94A6] hover:text-[#0F172A] transition-all"
+            >
+              <MoreHorizontal size={18} />
+            </button>
           </div>
 
           {/* Colaboradores por Status */}
@@ -478,7 +528,13 @@ export const DashboardPage: React.FC = () => {
                 })}
               </svg>
             </div>
-            <button className="absolute top-6 right-6 text-[#8A94A6] hover:text-[#0F172A]"><MoreHorizontal size={18} /></button>
+            <button
+              onClick={() => navigate('/employees')}
+              title="Ver todos os colaboradores"
+              className="absolute top-6 right-6 text-[#8A94A6] hover:text-[#0F172A] transition-all"
+            >
+              <MoreHorizontal size={18} />
+            </button>
           </div>
         </div>
 

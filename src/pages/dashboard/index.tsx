@@ -7,9 +7,13 @@ import type { Employee, ProductionCell, Alert, VacationRequest, AbsenceRecord } 
 import {
   Calendar, ChevronDown, Plus, Link2, MoreHorizontal
 } from 'lucide-react';
+import {
+  WidgetCatalogModal, WidgetGrid, useWidgets
+} from '../../components/cards/WidgetPanel';
 
 export const DashboardPage: React.FC = () => {
   const { currentUser } = useAppStore();
+  const { activeWidgets, modalOpen, setModalOpen, toggleWidget, removeWidget } = useWidgets();
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [cells, setCells] = useState<ProductionCell[]>([]);
@@ -204,7 +208,10 @@ export const DashboardPage: React.FC = () => {
             <span>Mensal</span>
             <ChevronDown size={12} className="text-[#5A6A85]" />
           </div>
-          <button className="flex items-center gap-1 bg-[#E8ECF2]/60 hover:bg-[#E8ECF2] px-4 py-2 rounded-full text-xs font-bold text-[#0F172A] transition-all cursor-pointer">
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-1 bg-[#6254E8] hover:bg-[#5145CD] text-white px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm cursor-pointer"
+          >
             <span>Adicionar Widget</span>
             <Plus size={14} />
           </button>
@@ -513,6 +520,21 @@ export const DashboardPage: React.FC = () => {
         </div>
 
       </div>
+      {/* WIDGETS PERSONALIZADOS */}
+      <WidgetGrid
+        activeWidgets={activeWidgets}
+        data={{ employees, vacationRequests, absenceRecords, cells, alerts }}
+        onRemove={removeWidget}
+      />
+
+      {/* MODAL DE SELEÇÃO DE WIDGETS */}
+      <WidgetCatalogModal
+        open={modalOpen}
+        activeWidgets={activeWidgets}
+        onClose={() => setModalOpen(false)}
+        onToggle={toggleWidget}
+      />
+
     </div>
   );
 };

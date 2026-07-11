@@ -149,11 +149,19 @@ export const collection = (_dbObj: any, collectionName: string) => {
 };
 
 export const doc = (parent: any, ...paths: string[]) => {
+  let id = '';
+  let collectionName = '';
+  
   if (parent.type === 'collection') {
-    return { type: 'document', collectionName: parent.name, id: paths[0] };
+    collectionName = parent.name;
+    id = paths[0] || 'mock_doc_' + Math.random().toString(36).substring(2, 11);
+  } else {
+    // doc(db, 'collectionName', 'id')
+    collectionName = paths[0];
+    id = paths[1] || 'mock_doc_' + Math.random().toString(36).substring(2, 11);
   }
-  // Se for chamado como doc(db, 'collectionName', 'id')
-  return { type: 'document', collectionName: paths[0], id: paths[1] };
+  
+  return { type: 'document', collectionName, id };
 };
 
 export const getDoc = async (docRef: any) => {

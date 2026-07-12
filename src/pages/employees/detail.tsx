@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
-import { getCells, getTeams, saveEmployee } from '../../services/databaseServices';
+import { getCells, getTeams, saveEmployee, deleteEmployee } from '../../services/databaseServices';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import type { ProductionCell, Team, ShiftType, ContractType, EmployeeStatus } from '../../types';
@@ -186,6 +186,23 @@ export const EmployeeDetailPage: React.FC = () => {
       setError('Erro ao salvar os dados. Verifique as permissões de acesso.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isEdit || !id || !currentUser) return;
+    if (window.confirm(`Tem certeza que deseja excluir o colaborador ${name}? Esta ação não pode ser desfeita.`)) {
+      setLoading(true);
+      setError(null);
+      try {
+        await deleteEmployee(id, currentUser);
+        navigate('/employees');
+      } catch (err: any) {
+        console.error(err);
+        setError('Erro ao excluir colaborador. Verifique seus privilégios.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -477,28 +494,40 @@ export const EmployeeDetailPage: React.FC = () => {
         </div>
 
         {/* BOTOES DE AÇÃO */}
-        <div className="px-6 py-4 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/employees')}
-            className="h-[46px] px-6 rounded-xl border border-[#E8ECF2] text-xs font-semibold text-[#0F172A] bg-white hover:bg-[#F6F8FB] transition-all"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="premium-button-primary"
-          >
-            {loading ? (
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            ) : (
-              <>
-                <Save size={16} />
-                <span>Salvar Cadastro</span>
-              </>
-            )}
-          </button>
+        <div className="px-6 py-4 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-between gap-3">
+          {isEdit && currentUser && ['admin', 'hr', 'manager'].includes(currentUser.role) ? (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="h-[46px] px-6 rounded-xl border border-[#FFE6EE] text-xs font-semibold text-[#E04F6F] bg-white hover:bg-[#FFE6EE] transition-all cursor-pointer"
+            >
+              Excluir Colaborador
+            </button>
+          ) : <div />}
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/employees')}
+              className="h-[46px] px-6 rounded-xl border border-[#E8ECF2] text-xs font-semibold text-[#0F172A] bg-white hover:bg-[#F6F8FB] transition-all cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="premium-button-primary cursor-pointer"
+            >
+              {loading ? (
+                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              ) : (
+                <>
+                  <Save size={16} />
+                  <span>Salvar Cadastro</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </div>

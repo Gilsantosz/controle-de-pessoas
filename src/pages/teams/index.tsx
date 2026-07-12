@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { getTeams, getCells, getUsersList, saveTeam } from '../../services/databaseServices';
+import { getTeams, getCells, getUsersList, saveTeam, deleteTeam } from '../../services/databaseServices';
 import type { Team, ProductionCell, UserProfile, ShiftType } from '../../types';
 import { DataTable } from '../../components/tables/DataTable';
 import { RiskBadge } from '../../components/feedback/RiskBadge';
@@ -108,6 +108,24 @@ export const TeamsPage: React.FC = () => {
       setError('Erro ao salvar equipe. Verifique suas permissões.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editId || !currentUser) return;
+    if (window.confirm('Tem certeza que deseja excluir esta equipe? Esta ação não pode ser desfeita.')) {
+      setLoading(true);
+      setError(null);
+      try {
+        await deleteTeam(editId, currentUser);
+        setIsOpen(false);
+        loadData();
+      } catch (err: any) {
+        console.error(err);
+        setError('Erro ao excluir equipe. Verifique seus privilégios.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -312,21 +330,33 @@ export const TeamsPage: React.FC = () => {
             </form>
 
             {/* Footer Drawer */}
-            <div className="p-6 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="h-10 px-4 rounded-xl border border-[#E8ECF2] text-xs font-semibold text-[#0F172A] bg-white hover:bg-[#F6F8FB] transition-all"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="h-10 px-4 rounded-xl bg-[#6254E8] hover:bg-[#5145CD] text-white text-xs font-semibold shadow-sm transition-all"
-              >
-                <Save size={14} className="inline mr-1" />
-                Salvar Equipe
-              </button>
+            <div className="p-6 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-between gap-3">
+              {editId ? (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="h-10 px-4 rounded-xl border border-[#FFE6EE] text-xs font-semibold text-[#E04F6F] bg-white hover:bg-[#FFE6EE] transition-all cursor-pointer"
+                >
+                  Excluir Equipe
+                </button>
+              ) : <div />}
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="h-10 px-4 rounded-xl border border-[#E8ECF2] text-xs font-semibold text-[#0F172A] bg-white hover:bg-[#F6F8FB] transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="h-10 px-4 rounded-xl bg-[#6254E8] hover:bg-[#5145CD] text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                >
+                  <Save size={14} className="inline mr-1" />
+                  Salvar Equipe
+                </button>
+              </div>
             </div>
           </div>
         </div>

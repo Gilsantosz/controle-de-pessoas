@@ -5,6 +5,7 @@ import {
   getDocs, 
   setDoc, 
   updateDoc, 
+  deleteDoc,
   query, 
   where, 
   orderBy,
@@ -706,4 +707,55 @@ async function triggerAlert(alertData: Omit<Alert, 'id' | 'created_at'>, current
       related_entity_id: alertData.related_entity_id
     }, currentUser);
   }
+}
+
+export async function deleteCell(cellId: string, currentUser: UserProfile): Promise<void> {
+  const docRef = doc(db, 'production_cells', cellId);
+  const beforeSnap = await getDoc(docRef);
+  const beforeDoc = beforeSnap.exists() ? beforeSnap.data() : null;
+  
+  await deleteDoc(docRef);
+  
+  await logAction(
+    'DELETE_CELL',
+    'production_cells',
+    cellId,
+    beforeDoc,
+    null,
+    currentUser
+  );
+}
+
+export async function deleteTeam(teamId: string, currentUser: UserProfile): Promise<void> {
+  const docRef = doc(db, 'teams', teamId);
+  const beforeSnap = await getDoc(docRef);
+  const beforeDoc = beforeSnap.exists() ? beforeSnap.data() : null;
+  
+  await deleteDoc(docRef);
+  
+  await logAction(
+    'DELETE_TEAM',
+    'teams',
+    teamId,
+    beforeDoc,
+    null,
+    currentUser
+  );
+}
+
+export async function deleteEmployee(employeeId: string, currentUser: UserProfile): Promise<void> {
+  const docRef = doc(db, 'employees', employeeId);
+  const beforeSnap = await getDoc(docRef);
+  const beforeDoc = beforeSnap.exists() ? beforeSnap.data() : null;
+  
+  await deleteDoc(docRef);
+  
+  await logAction(
+    'DELETE_EMPLOYEE',
+    'employees',
+    employeeId,
+    beforeDoc,
+    null,
+    currentUser
+  );
 }

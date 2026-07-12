@@ -256,6 +256,14 @@ export const updateDoc = async (docRef: any, data: any) => {
   return setDoc(docRef, data, { merge: true });
 };
 
+export const deleteDoc = async (docRef: any) => {
+  const collectionName = docRef.collectionName;
+  const id = docRef.id;
+  const items: any[] = JSON.parse(localStorage.getItem(`mock_db_${collectionName}`) || '[]');
+  const filtered = items.filter(i => (i.id !== id && i.uid !== id));
+  localStorage.setItem(`mock_db_${collectionName}`, JSON.stringify(filtered));
+};
+
 // Query builders
 export const query = (colRef: any, ...constraints: any[]) => {
   const filters: any[] = [];

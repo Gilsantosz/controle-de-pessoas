@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
-import { getEmployees, getCells, getTeams } from '../../services/databaseServices';
+import { getEmployees, getCells, getTeams, saveEmployee } from '../../services/databaseServices';
 import type { Employee, ProductionCell, Team } from '../../types';
 import { DataTable } from '../../components/tables/DataTable';
 import { RiskBadge } from '../../components/feedback/RiskBadge';
-import { UserPlus, FileEdit, CalendarPlus, AlertTriangle } from 'lucide-react';
+import { UserPlus, FileEdit, CalendarPlus, AlertTriangle, UserMinus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export const EmployeesPage: React.FC = () => {
@@ -171,6 +171,29 @@ export const EmployeesPage: React.FC = () => {
               >
                 <AlertTriangle size={14} />
               </button>
+              {row.status !== 'inactive' && (
+                <button 
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Tem certeza que deseja registrar o desligamento do colaborador ${row.name}? Seu status será alterado para Inativo.`)) {
+                      try {
+                        await saveEmployee({
+                          ...row,
+                          status: 'inactive'
+                        }, currentUser);
+                        setEmployees(prev => prev.map(emp => emp.id === row.id ? { ...emp, status: 'inactive' } : emp));
+                      } catch (err) {
+                        console.error(err);
+                        alert('Erro ao registrar desligamento.');
+                      }
+                    }
+                  }}
+                  className="p-1.5 rounded-lg border border-[#E8ECF2] hover:bg-amber-50 text-[#8A94A6] hover:text-amber-600 transition-all"
+                  title="Desligar Colaborador"
+                >
+                  <UserMinus size={14} />
+                </button>
+              )}
             </>
           )}
         </div>

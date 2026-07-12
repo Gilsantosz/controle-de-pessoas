@@ -206,6 +206,64 @@ export const EmployeeDetailPage: React.FC = () => {
     }
   };
 
+  const handleOffboard = async () => {
+    if (!isEdit || !id || !currentUser) return;
+    if (window.confirm(`Tem certeza que deseja registrar o desligamento do colaborador ${name}? Seu status será alterado para Inativo/Desligado.`)) {
+      setLoading(true);
+      setError(null);
+      
+      const cellObj = cells.find(c => c.id === cellId);
+      const skillsArray = skills
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s !== '');
+
+      const employeeObj = {
+        id,
+        name,
+        registration,
+        phone,
+        email,
+        role,
+        shift,
+        weekly_hours: Number(weeklyHours),
+        contract_type: contractType,
+        productivity_rate: Number(productivityRate),
+        cell_id: cellId,
+        cell_name: cellObj ? cellObj.name : 'Sem Célula',
+        team_id: teamId,
+        skills: skillsArray,
+        hire_date: hireDate,
+        acquisition_period_start: acqStart,
+        acquisition_period_end: acqEnd,
+        concession_deadline: concessionDeadline,
+        vacation_balance_days: Number(vacationBalance),
+        used_vacation_days: 0,
+        pending_vacation_days: 0,
+        status: 'inactive' as EmployeeStatus,
+        company_id: currentUser.company_id,
+        business_unit_id: currentUser.business_unit_ids[0] || 'bu_industrial',
+        owner_supervisor_id: ownerSupervisorId || currentUser.uid,
+        supervisor_ids: supervisorIds.length > 0 ? supervisorIds : [currentUser.uid],
+        created_by_user_id: createdByUserId || currentUser.uid,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: currentUser.email,
+        updated_by: currentUser.email
+      };
+
+      try {
+        await saveEmployee(employeeObj, currentUser);
+        navigate('/employees');
+      } catch (err: any) {
+        console.error(err);
+        setError('Erro ao registrar desligamento. Verifique as permissões de acesso.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   if (error && error.startsWith("Acesso negado")) {
     return (
       <div className="space-y-8 max-w-4xl mx-auto">
@@ -496,13 +554,24 @@ export const EmployeeDetailPage: React.FC = () => {
         {/* BOTOES DE AÇÃO */}
         <div className="px-6 py-4 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-between gap-3">
           {isEdit && currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) ? (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="h-[46px] px-6 rounded-xl border border-[#FFE6EE] text-xs font-semibold text-[#E04F6F] bg-white hover:bg-[#FFE6EE] transition-all cursor-pointer"
-            >
-              Excluir Colaborador
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="h-[46px] px-6 rounded-xl border border-[#FFE6EE] text-xs font-semibold text-[#E04F6F] bg-white hover:bg-[#FFE6EE] transition-all cursor-pointer font-sans"
+              >
+                Excluir
+              </button>
+              {status !== 'inactive' && (
+                <button
+                  type="button"
+                  onClick={handleOffboard}
+                  className="h-[46px] px-6 rounded-xl border border-amber-200 text-xs font-semibold text-amber-600 bg-white hover:bg-amber-50 transition-all cursor-pointer font-sans"
+                >
+                  Desligar
+                </button>
+              )}
+            </div>
           ) : <div />}
 
           <div className="flex gap-3">

@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "sistema-industrial-81775"
+  },
   "targets": {},
   "etags": {}
 }

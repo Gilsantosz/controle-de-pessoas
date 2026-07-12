@@ -3,12 +3,12 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyA7T6tYpwxxk8IGjLq2QZfGAscbYtH6rSc",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "sistema-industrial-81775.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "sistema-industrial-81775",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "sistema-industrial-81775.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "697017065286",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:697017065286:web:c936e14e5d6bfa25380f47"
 };
 
 // Avisar se as chaves não estiverem configuradas

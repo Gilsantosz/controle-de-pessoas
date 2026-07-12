@@ -5,7 +5,7 @@ import { Outlet } from 'react-router-dom';
 
 export const AppShell: React.FC = () => {
   return (
-    <div className="min-h-screen bg-[#F3F3F3] p-0 md:p-6 flex flex-col text-[#0F172A]">
+    <div className="h-screen max-h-screen overflow-hidden bg-[#F3F3F3] p-0 md:p-6 flex flex-col text-[#0F172A]">
       <div className="flex-1 bg-white rounded-none md:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.03)] border-b border-[#E8ECF2]/30 md:border flex overflow-hidden">
         {/* Barra lateral vertical à esquerda */}
         <Sidebar />

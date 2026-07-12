@@ -3,8 +3,11 @@ import { useAppStore } from '../../store/useAppStore';
 import { 
   getEmployees, getVacationRequests, getAbsenceRecords, getSystemLogs 
 } from '../../services/databaseServices';
-import { FileSpreadsheet, Download, ShieldAlert, History, Activity } from 'lucide-react';
+import { FileSpreadsheet, Download, ShieldAlert, History, Activity, FileText } from 'lucide-react';
 import { logAction } from '../../services/auditService';
+import { format, parseISO } from 'date-fns';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export const ReportsPage: React.FC = () => {
   const { currentUser } = useAppStore();
@@ -93,13 +96,257 @@ export const ReportsPage: React.FC = () => {
     }
   };
 
+  const handleExportPDF = async (type: string) => {
+    if (!currentUser) return;
+    setExporting(`${type}_pdf`);
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      let reportTitle = '';
+      let headers: string[] = [];
+      let rows: any[][] = [];
+      let filename = '';
+      let rowCount = 0;
+
+      // Traduções e Formatadores
+      const statusTranslations: Record<string, string> = {
+        approved: 'Aprovado',
+        pending: 'Pendente',
+        rejected: 'Reprovado',
+        active: 'Ativo',
+        inactive: 'Inativo'
+      };
+      
+      const roleTranslations: Record<string, string> = {
+        admin: 'Administrador',
+        hr: 'Recursos Humanos',
+        manager: 'Gestão Geral',
+        supervisor: 'Supervisor',
+        user: 'Colaborador',
+        viewer: 'Visualizador'
+      };
+
+      const originTranslations: Record<string, string> = {
+        automatic_suggestion: 'Sugestão',
+        manual_entry: 'Manual',
+        employee_request: 'Funcionário',
+        hr_entry: 'Lançamento RH'
+      };
+
+      const riskTranslations: Record<string, string> = {
+        low: 'Baixo',
+        medium: 'Médio',
+        high: 'Alto',
+        critical: 'Crítico'
+      };
+
+      const formatDateStr = (dateStr: string) => {
+        try {
+          return format(parseISO(dateStr), 'dd/MM/yyyy');
+        } catch {
+          return dateStr;
+        }
+      };
+
+      if (type === 'vacations') {
+        const data = await getVacationRequests(currentUser);
+        filename = `ferias_export_${new Date().toISOString().slice(0,10)}.pdf`;
+        reportTitle = 'Relatório de Solicitações de Férias';
+        headers = ['Colaborador', 'Matrícula', 'Célula', 'Período', 'Dias', 'Status', 'Origem', 'Risco'];
+        rowCount = data.length;
+        rows = data.map(v => [
+          v.employee_name,
+          v.employee_registration || '—',
+          v.cell_name,
+          `${formatDateStr(v.start_date)} até ${formatDateStr(v.end_date)}`,
+          v.days_count.toString(),
+          statusTranslations[v.status] || v.status,
+          originTranslations[v.origin] || v.origin,
+          riskTranslations[v.impact_level] || v.impact_level || '—'
+        ]);
+      } else if (type === 'absences') {
+        const data = await getAbsenceRecords(currentUser);
+        filename = `absenteismo_export_${new Date().toISOString().slice(0,10)}.pdf`;
+        reportTitle = 'Relatório de Absenteísmo e Ausências';
+        headers = ['Colaborador', 'Matrícula', 'Data', 'Tipo', 'Justificativa', 'Atraso', 'Perda Est.'];
+        rowCount = data.length;
+        rows = data.map(a => [
+          a.employee_name,
+          a.employee_registration || '—',
+          formatDateStr(a.date),
+          a.type === 'absence' ? 'Falta Integral' : 'Atraso Parcial',
+          a.subtype || '—',
+          a.delay_minutes ? `${a.delay_minutes} min` : '—',
+          a.estimated_production_loss ? `R$ ${a.estimated_production_loss.toFixed(2)}` : 'R$ 0,00'
+        ]);
+      } else if (type === 'expiring') {
+        const data = await getEmployees(currentUser);
+        const filtered = data.filter(e => e.vacation_balance_days > 0);
+        filename = `ferias_vencendo_export_${new Date().toISOString().slice(0,10)}.pdf`;
+        reportTitle = 'Passivo de Férias e Prazos Limites';
+        headers = ['Colaborador', 'Matrícula', 'Cargo', 'Saldo (Dias)', 'Admissão', 'Prazo Concessão', 'Status'];
+        rowCount = filtered.length;
+        rows = filtered.map(e => [
+          e.name,
+          e.registration || '—',
+          e.role || '—',
+          e.vacation_balance_days.toString(),
+          formatDateStr(e.hire_date),
+          formatDateStr(e.concession_deadline),
+          statusTranslations[e.status] || e.status
+        ]);
+      } else if (type === 'logs') {
+        const data = await getSystemLogs(currentUser);
+        filename = `auditoria_logs_export_${new Date().toISOString().slice(0,10)}.pdf`;
+        reportTitle = 'Logs de Auditoria e Segurança';
+        headers = ['E-mail', 'Papel', 'Ação', 'Entidade', 'Entidade ID', 'Data/Hora'];
+        rowCount = data.length;
+        rows = data.map(l => [
+          l.user_email,
+          roleTranslations[l.user_role] || l.user_role || '—',
+          l.action,
+          l.entity || '—',
+          l.entity_id || '—',
+          formatDateStr(l.created_at.split('T')[0]) + ' ' + l.created_at.split('T')[1]?.slice(0, 5)
+        ]);
+      }
+
+      // Draw custom technical header
+      // Orange branding box (Zentra)
+      doc.setFillColor(255, 154, 62); // #FF9A3E
+      doc.rect(14, 12, 10, 10, 'F');
+      
+      // White bold 'Z' inside box
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('Z', 17.5, 19.2);
+
+      // System brand title next to logo
+      doc.setTextColor(15, 23, 42); // #0F172A
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('zentra', 27, 18.5);
+
+      // Subtitle
+      doc.setTextColor(138, 148, 166); // #8A94A6
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text('VacationPro', 27, 22.5);
+
+      // Metadata block on the right
+      doc.setTextColor(138, 148, 166);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(`Emissor: ${currentUser.name}`, 196, 16, { align: 'right' });
+      doc.text(`Perfil: ${roleTranslations[currentUser.role] || currentUser.role}`, 196, 20, { align: 'right' });
+      doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 196, 24, { align: 'right' });
+
+      // Technical divider line
+      doc.setDrawColor(232, 236, 242); // #E8ECF2
+      doc.setLineWidth(0.5);
+      doc.line(14, 28, 196, 28);
+
+      // Report title
+      doc.setTextColor(15, 23, 42); // #0F172A
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(reportTitle, 14, 37);
+
+      // Table footer page placeholder
+      const totalPagesExp = '{total_pages_count_string}';
+
+      // Styled table render
+      autoTable(doc, {
+        startY: 42,
+        head: [headers],
+        body: rows,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [98, 84, 232], // #6254E8 (primary purple)
+          textColor: [255, 255, 255],
+          fontSize: 7.5,
+          fontStyle: 'bold',
+          halign: 'left',
+          valign: 'middle'
+        },
+        bodyStyles: {
+          fontSize: 7,
+          textColor: [15, 23, 42],
+          valign: 'middle'
+        },
+        alternateRowStyles: {
+          fillColor: [246, 248, 251] // #F6F8FB
+        },
+        margin: { left: 14, right: 14 },
+        styles: {
+          overflow: 'linebreak',
+          cellPadding: 2
+        },
+        didDrawPage: (data) => {
+          // Page Footer
+          doc.setFontSize(7.5);
+          doc.setTextColor(138, 148, 166);
+          doc.setFont('helvetica', 'normal');
+          
+          doc.text(
+            `Página ${data.pageNumber} de ${totalPagesExp}`,
+            196,
+            doc.internal.pageSize.height - 10,
+            { align: 'right' }
+          );
+          doc.text(
+            'zentra VacationPro — Relatório Gerencial Confidencial',
+            14,
+            doc.internal.pageSize.height - 10
+          );
+        }
+      });
+
+      // Replace total pages placeholder
+      if (typeof doc.putTotalPages === 'function') {
+        doc.putTotalPages(totalPagesExp);
+      }
+
+      // Save PDF in client
+      doc.save(filename);
+
+      // Log action in audit service
+      await logAction(
+        `EXPORT_PDF_${type.toUpperCase()}`,
+        'reports',
+        type,
+        null,
+        { 
+          filename, 
+          scope: currentUser.role,
+          row_count: rowCount,
+          exported_by_email: currentUser.email,
+          exported_by_name: currentUser.name,
+          timestamp: new Date().toISOString()
+        },
+        currentUser
+      );
+
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao exportar relatório em PDF.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* HEADER TELA */}
       <div>
         <h2 className="text-2xl font-bold text-[#0F172A] tracking-tight">Relatórios de Exportação</h2>
         <p className="text-xs text-[#8A94A6] font-medium mt-1">
-          Exportação de planilhas de gestão, logs do sistema e análises de absenteísmo no formato de arquivos CSV.
+          Exportação de planilhas de gestão, logs do sistema e análises de absenteísmo nos formatos CSV e PDF.
         </p>
       </div>
 
@@ -118,18 +365,32 @@ export const ReportsPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => handleExport('vacations')}
-            disabled={exporting !== null}
-            className="premium-button-secondary w-full mt-6 flex items-center justify-center gap-2"
-          >
-            {exporting === 'vacations' ? 'Processando...' : (
-              <>
-                <Download size={14} />
-                <span>Exportar Férias (CSV)</span>
-              </>
-            )}
-          </button>
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => handleExport('vacations')}
+              disabled={exporting !== null}
+              className="premium-button-secondary flex-1 flex items-center justify-center gap-2 text-xs h-10"
+            >
+              {exporting === 'vacations' ? '...' : (
+                <>
+                  <Download size={14} />
+                  <span>CSV</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => handleExportPDF('vacations')}
+              disabled={exporting !== null}
+              className="premium-button-primary flex-1 flex items-center justify-center gap-2 text-xs h-10 bg-[#6254E8] hover:bg-[#5145CD]"
+            >
+              {exporting === 'vacations_pdf' ? '...' : (
+                <>
+                  <FileText size={14} />
+                  <span>PDF</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* CARD 2: ABSENTEÍSMO */}
@@ -145,18 +406,32 @@ export const ReportsPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => handleExport('absences')}
-            disabled={exporting !== null}
-            className="premium-button-secondary w-full mt-6 flex items-center justify-center gap-2"
-          >
-            {exporting === 'absences' ? 'Processando...' : (
-              <>
-                <Download size={14} />
-                <span>Exportar Absenteísmo (CSV)</span>
-              </>
-            )}
-          </button>
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => handleExport('absences')}
+              disabled={exporting !== null}
+              className="premium-button-secondary flex-1 flex items-center justify-center gap-2 text-xs h-10"
+            >
+              {exporting === 'absences' ? '...' : (
+                <>
+                  <Download size={14} />
+                  <span>CSV</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => handleExportPDF('absences')}
+              disabled={exporting !== null}
+              className="premium-button-primary flex-1 flex items-center justify-center gap-2 text-xs h-10 bg-[#6254E8] hover:bg-[#5145CD]"
+            >
+              {exporting === 'absences_pdf' ? '...' : (
+                <>
+                  <FileText size={14} />
+                  <span>PDF</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* CARD 3: FÉRIAS VENCENDO */}
@@ -172,18 +447,32 @@ export const ReportsPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => handleExport('expiring')}
-            disabled={exporting !== null}
-            className="premium-button-secondary w-full mt-6 flex items-center justify-center gap-2"
-          >
-            {exporting === 'expiring' ? 'Processando...' : (
-              <>
-                <Download size={14} />
-                <span>Exportar Saldos / Limites (CSV)</span>
-              </>
-            )}
-          </button>
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => handleExport('expiring')}
+              disabled={exporting !== null}
+              className="premium-button-secondary flex-1 flex items-center justify-center gap-2 text-xs h-10"
+            >
+              {exporting === 'expiring' ? '...' : (
+                <>
+                  <Download size={14} />
+                  <span>CSV</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => handleExportPDF('expiring')}
+              disabled={exporting !== null}
+              className="premium-button-primary flex-1 flex items-center justify-center gap-2 text-xs h-10 bg-[#6254E8] hover:bg-[#5145CD]"
+            >
+              {exporting === 'expiring_pdf' ? '...' : (
+                <>
+                  <FileText size={14} />
+                  <span>PDF</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* CARD 4: LOGS AUDITORIA */}
@@ -200,18 +489,32 @@ export const ReportsPage: React.FC = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => handleExport('logs')}
-              disabled={exporting !== null}
-              className="premium-button-secondary w-full mt-6 flex items-center justify-center gap-2"
-            >
-              {exporting === 'logs' ? 'Processando...' : (
-                <>
-                  <Download size={14} />
-                  <span>Exportar Logs de Auditoria (CSV)</span>
-                </>
-              )}
-            </button>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => handleExport('logs')}
+                disabled={exporting !== null}
+                className="premium-button-secondary flex-1 flex items-center justify-center gap-2 text-xs h-10"
+              >
+                {exporting === 'logs' ? '...' : (
+                  <>
+                    <Download size={14} />
+                    <span>CSV</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => handleExportPDF('logs')}
+                disabled={exporting !== null}
+                className="premium-button-primary flex-1 flex items-center justify-center gap-2 text-xs h-10 bg-[#6254E8] hover:bg-[#5145CD]"
+              >
+                {exporting === 'logs_pdf' ? '...' : (
+                  <>
+                    <FileText size={14} />
+                    <span>PDF</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>

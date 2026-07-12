@@ -4,11 +4,11 @@ import {
   getUsersList, getAllowedEmails, saveAllowedEmail, 
   updateUserProfile, getTeams, getCells, getEmployees
 } from '../../services/databaseServices';
-import type { UserProfile, AllowedEmail, Team, ProductionCell, Employee, UserRole, UserStatus } from '../../types';
+import type { UserProfile, AllowedEmail, Team, ProductionCell, Employee, UserRole, UserStatus, ShiftType } from '../../types';
 import { DataTable } from '../../components/tables/DataTable';
 import { RiskBadge } from '../../components/feedback/RiskBadge';
-import { Plus, X, Shield, Users } from 'lucide-react';
-import { doc, setDoc } from 'firebase/firestore';
+import { Plus, X, Shield, Users, Trash } from 'lucide-react';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 
 export const AdminUsersPage: React.FC = () => {
@@ -29,6 +29,7 @@ export const AdminUsersPage: React.FC = () => {
   const [wCellIds, setWCellIds] = useState<string[]>([]);
   const [wTeamIds, setWTeamIds] = useState<string[]>([]);
   const [wEmployeeIds, setWEmployeeIds] = useState<string[]>([]);
+  const [wShifts, setWShifts] = useState<ShiftType[]>([]);
 
   // User Edit Form states
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -37,11 +38,20 @@ export const AdminUsersPage: React.FC = () => {
   const [editCellIds, setEditCellIds] = useState<string[]>([]);
   const [editTeamIds, setEditTeamIds] = useState<string[]>([]);
   const [editEmployeeIds, setEditEmployeeIds] = useState<string[]>([]);
+  const [editShifts, setEditShifts] = useState<ShiftType[]>([]);
   const [editCanApprove, setEditCanApprove] = useState(false);
   const [editCanViewAllCompany, setEditCanViewAllCompany] = useState(false);
   const [editCanViewAllBU, setEditCanViewAllBU] = useState(false);
   const [editCanViewAllCells, setEditCanViewAllCells] = useState(false);
   const [editCanViewAllTeams, setEditCanViewAllTeams] = useState(false);
+
+  // Whitelist Edit Form states
+  const [selectedWhitelist, setSelectedWhitelist] = useState<AllowedEmail | null>(null);
+  const [editWRole, setEditWRole] = useState<UserRole>('supervisor');
+  const [editWCellIds, setEditWCellIds] = useState<string[]>([]);
+  const [editWTeamIds, setEditWTeamIds] = useState<string[]>([]);
+  const [editWEmployeeIds, setEditWEmployeeIds] = useState<string[]>([]);
+  const [editWShifts, setEditWShifts] = useState<ShiftType[]>([]);
 
   const loadData = async () => {
     if (!currentUser) return;
@@ -91,6 +101,7 @@ export const AdminUsersPage: React.FC = () => {
       allowed_cell_ids: wCellIds,
       allowed_team_ids: wTeamIds,
       allowed_employee_ids: wEmployeeIds,
+      allowed_shifts: wShifts,
       created_at: new Date().toISOString(),
       created_by: currentUser.email,
       updated_at: new Date().toISOString(),
@@ -103,6 +114,7 @@ export const AdminUsersPage: React.FC = () => {
       setWCellIds([]);
       setWTeamIds([]);
       setWEmployeeIds([]);
+      setWShifts([]);
       setShowAddWhitelist(false);
       loadData();
     } catch (err) {
@@ -118,6 +130,7 @@ export const AdminUsersPage: React.FC = () => {
     setEditCellIds(user.allowed_cell_ids || []);
     setEditTeamIds(user.allowed_team_ids || []);
     setEditEmployeeIds(user.allowed_employee_ids || []);
+    setEditShifts(user.allowed_shifts || []);
     setEditCanApprove(user.can_approve || false);
     setEditCanViewAllCompany(user.can_view_all_company || false);
     setEditCanViewAllBU(user.can_view_all_business_unit || false);
@@ -173,6 +186,7 @@ export const AdminUsersPage: React.FC = () => {
         allowed_cell_ids: finalCellIds,
         allowed_team_ids: finalTeamIds,
         allowed_employee_ids: editEmployeeIds,
+        allowed_shifts: editShifts,
         can_view_all_company: editCanViewAllCompany,
         can_view_all_business_unit: editCanViewAllBU,
         can_view_all_cells: editCanViewAllCells,
@@ -190,7 +204,54 @@ export const AdminUsersPage: React.FC = () => {
     }
   };
 
-  const handleToggleTeam = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, teamId: string) => {
+  const handleEditWhitelist = (item: AllowedEmail) => {
+    setSelectedWhitelist(item);
+    setEditWRole(item.role);
+    setEditWCellIds(item.allowed_cell_ids || []);
+    setEditWTeamIds(item.allowed_team_ids || []);
+    setEditWEmployeeIds(item.allowed_employee_ids || []);
+    setEditWShifts(item.allowed_shifts || []);
+  };
+
+  const handleSaveWhitelistEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !selectedWhitelist) return;
+    setError(null);
+    try {
+      const updatedAllowed = {
+        ...selectedWhitelist,
+        role: editWRole,
+        allowed_cell_ids: editWCellIds,
+        allowed_team_ids: editWTeamIds,
+        allowed_employee_ids: editWEmployeeIds,
+        allowed_shifts: editWShifts
+      };
+      await saveAllowedEmail(updatedAllowed, currentUser);
+      setSelectedWhitelist(null);
+      loadData();
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao salvar edições da whitelist.');
+    }
+  };
+
+  const handleDeleteWhitelist = async () => {
+    if (!currentUser || !selectedWhitelist) return;
+    if (window.confirm(`Tem certeza que deseja excluir ${selectedWhitelist.email} da whitelist?`)) {
+      setError(null);
+      try {
+        const docRef = doc(db, 'allowed_emails', selectedWhitelist.normalized_email);
+        await deleteDoc(docRef);
+        setSelectedWhitelist(null);
+        loadData();
+      } catch (err) {
+        console.error(err);
+        setError('Erro ao excluir e-mail da whitelist.');
+      }
+    }
+  };
+
+  const handleToggleTeam = (list: any[], setList: React.Dispatch<React.SetStateAction<any[]>>, teamId: any) => {
     if (list.includes(teamId)) {
       setList(list.filter(id => id !== teamId));
     } else {
@@ -301,6 +362,7 @@ export const AdminUsersPage: React.FC = () => {
             columns={whitelistColumns}
             data={allowedEmails}
             loading={loading}
+            onRowClick={handleEditWhitelist}
             emptyMessage="Nenhum e-mail autorizado na whitelist."
           />
         </div>
@@ -406,6 +468,31 @@ export const AdminUsersPage: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={wEmployeeIds.includes(emp.id)}
+                            readOnly
+                            className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Vincular Turnos Permitidos</label>
+                    <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-28 overflow-y-auto">
+                      {([
+                        { id: 'morning', name: 'Manhã' },
+                        { id: 'afternoon', name: 'Tarde' },
+                        { id: 'night', name: 'Noite' },
+                        { id: 'administrative', name: 'Administrativo' }
+                      ] as const).map(sh => (
+                        <div 
+                          key={sh.id}
+                          onClick={() => handleToggleTeam(wShifts, setWShifts, sh.id)}
+                          className="p-2 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                        >
+                          <span>{sh.name}</span>
+                          <input
+                            type="checkbox"
+                            checked={wShifts.includes(sh.id)}
                             readOnly
                             className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
                           />
@@ -609,6 +696,31 @@ export const AdminUsersPage: React.FC = () => {
                   ))}
                 </div>
               </div>
+              <div>
+                <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Turnos Permitidos</label>
+                <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
+                  {([
+                    { id: 'morning', name: 'Manhã' },
+                    { id: 'afternoon', name: 'Tarde' },
+                    { id: 'night', name: 'Noite' },
+                    { id: 'administrative', name: 'Administrativo' }
+                  ] as const).map(sh => (
+                    <div 
+                      key={sh.id}
+                      onClick={() => handleToggleTeam(editShifts, setEditShifts, sh.id)}
+                      className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                    >
+                      <span>{sh.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={editShifts.includes(sh.id)}
+                        readOnly
+                        className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="p-6 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-end gap-3">
@@ -625,6 +737,164 @@ export const AdminUsersPage: React.FC = () => {
               >
                 Salvar Alterações
               </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {/* DRAWER EDITAR WHITELIST (ALLOWED EMAILS) */}
+      {selectedWhitelist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end">
+          <div className="fixed inset-0 bg-[#0F172A]/20 backdrop-blur-sm" onClick={() => setSelectedWhitelist(null)} />
+          
+          <form onSubmit={handleSaveWhitelistEdit} className="w-full max-w-md bg-white h-screen shadow-2xl relative z-50 flex flex-col justify-between border-l border-[#E8ECF2] animate-in slide-in-from-right duration-250">
+            <div className="p-6 border-b border-[#E8ECF2] flex items-center justify-between">
+              <h3 className="font-bold text-[#0F172A] text-sm">Editar E-mail Autorizado (Whitelist)</h3>
+              <button type="button" onClick={() => setSelectedWhitelist(null)} className="text-[#8A94A6] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F6F8FB]">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div>
+                <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-1">E-mail Autorizado</label>
+                <p className="text-xs font-semibold text-[#0F172A]">{selectedWhitelist.email}</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Papel Pré-Definido (Role)</label>
+                <select
+                  value={editWRole}
+                  onChange={(e) => setEditWRole(e.target.value as UserRole)}
+                  className="w-full h-10 px-3 bg-[#F6F8FB] border border-transparent rounded-xl text-xs text-[#0F172A] focus:outline-none focus:bg-white focus:border-[#E8ECF2] transition-all"
+                >
+                  <option value="admin">Administrador</option>
+                  <option value="hr">Recursos Humanos</option>
+                  <option value="manager">Gestão Geral</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="user">Colaborador Comum</option>
+                  <option value="viewer">Visualizador</option>
+                </select>
+              </div>
+
+              {['supervisor', 'user', 'viewer'].includes(editWRole) && (
+                <>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Células Permitidas</label>
+                    <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
+                      {cells.map(c => (
+                        <div 
+                          key={c.id}
+                          onClick={() => handleToggleTeam(editWCellIds, setEditWCellIds, c.id)}
+                          className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                        >
+                          <span>{c.name}</span>
+                          <input
+                            type="checkbox"
+                            checked={editWCellIds.includes(c.id)}
+                            readOnly
+                            className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Vincular Equipes Permitidas</label>
+                    <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
+                      {teams.map(t => (
+                        <div 
+                          key={t.id}
+                          onClick={() => handleToggleTeam(editWTeamIds, setEditWTeamIds, t.id)}
+                          className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                        >
+                          <span>{t.name}</span>
+                          <input
+                            type="checkbox"
+                            checked={editWTeamIds.includes(t.id)}
+                            readOnly
+                            className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Colaboradores Específicos Permitidos</label>
+                    <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
+                      {allEmployees.map(emp => (
+                        <div 
+                          key={emp.id}
+                          onClick={() => handleToggleTeam(editWEmployeeIds, setEditWEmployeeIds, emp.id)}
+                          className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                        >
+                          <span>{emp.name} ({emp.registration})</span>
+                          <input
+                            type="checkbox"
+                            checked={editWEmployeeIds.includes(emp.id)}
+                            readOnly
+                            className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider block mb-2">Turnos Permitidos</label>
+                    <div className="border border-[#E8ECF2] rounded-2xl divide-y divide-[#F6F8FB] max-h-36 overflow-y-auto">
+                      {([
+                        { id: 'morning', name: 'Manhã' },
+                        { id: 'afternoon', name: 'Tarde' },
+                        { id: 'night', name: 'Noite' },
+                        { id: 'administrative', name: 'Administrativo' }
+                      ] as const).map(sh => (
+                        <div 
+                          key={sh.id}
+                          onClick={() => handleToggleTeam(editWShifts, setEditWShifts, sh.id)}
+                          className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-[#F7F8FC]/50 text-xs font-semibold text-[#0F172A]"
+                        >
+                          <span>{sh.name}</span>
+                          <input
+                            type="checkbox"
+                            checked={editWShifts.includes(sh.id)}
+                            readOnly
+                            className="w-4 h-4 text-[#6254E8] rounded border-[#E8ECF2]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-6 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleDeleteWhitelist}
+                className="h-10 px-4 rounded-xl border border-[#FFE6EE] text-xs font-semibold text-[#E04F6F] bg-white hover:bg-[#FFE6EE] flex items-center gap-1.5 transition-all cursor-pointer animate-pulse-subtle"
+              >
+                <Trash size={14} />
+                Remover Autorização
+              </button>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedWhitelist(null)}
+                  className="h-10 px-4 rounded-xl border border-[#E8ECF2] text-xs font-semibold text-[#0F172A] bg-white hover:bg-[#F6F8FB]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="h-10 px-4 rounded-xl bg-[#6254E8] hover:bg-[#5145CD] text-white text-xs font-semibold shadow-sm"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
             </div>
           </form>
         </div>

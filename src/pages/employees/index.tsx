@@ -149,7 +149,7 @@ export const EmployeesPage: React.FC = () => {
               <FileEdit size={14} />
             </button>
           )}
-          {currentUser && ['admin', 'hr', 'supervisor'].includes(currentUser.role) && (
+          {currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) && (
             <>
               <button 
                 onClick={(e) => {
@@ -188,7 +188,7 @@ export const EmployeesPage: React.FC = () => {
             Gerenciamento de fichas cadastrais, saldos de férias acumulados e prazos legais de concessão.
           </p>
         </div>
-        {currentUser && ['admin', 'hr', 'supervisor'].includes(currentUser.role) && (
+        {currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) && (
           <button 
             onClick={() => navigate('/employees/new')}
             className="premium-button-primary shrink-0 self-start sm:self-auto"

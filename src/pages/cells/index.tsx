@@ -206,7 +206,7 @@ export const CellsPage: React.FC = () => {
             Cadastro de células físicas da fábrica, definindo limites de capacidade segura e criticidade de processos.
           </p>
         </div>
-        {currentUser && ['admin', 'hr', 'manager'].includes(currentUser.role) && (
+        {currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) && (
           <button 
             onClick={handleOpenNew}
             className="premium-button-primary shrink-0 self-start sm:self-auto"
@@ -222,7 +222,7 @@ export const CellsPage: React.FC = () => {
         columns={columns}
         data={cells}
         loading={loading}
-        onRowClick={currentUser && ['admin', 'hr', 'manager'].includes(currentUser.role) ? handleOpenEdit : undefined}
+        onRowClick={currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) ? handleOpenEdit : undefined}
         emptyMessage="Nenhuma célula cadastrada. Clique em Criar Célula."
       />
 

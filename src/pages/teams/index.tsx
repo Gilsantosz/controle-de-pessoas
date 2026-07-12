@@ -193,7 +193,7 @@ export const TeamsPage: React.FC = () => {
             Gestão de grupos e equipes de operadores industriais, vinculação de turnos e múltiplos supervisores.
           </p>
         </div>
-        {currentUser && ['admin', 'hr', 'manager'].includes(currentUser.role) && (
+        {currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) && (
           <button 
             onClick={handleOpenNew}
             className="premium-button-primary shrink-0 self-start sm:self-auto"
@@ -209,7 +209,7 @@ export const TeamsPage: React.FC = () => {
         columns={columns}
         data={teams}
         loading={loading}
-        onRowClick={currentUser && ['admin', 'hr', 'manager'].includes(currentUser.role) ? handleOpenEdit : undefined}
+        onRowClick={currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) ? handleOpenEdit : undefined}
         emptyMessage="Nenhuma equipe cadastrada. Clique em Criar Equipe."
       />
 

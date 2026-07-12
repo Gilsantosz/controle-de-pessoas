@@ -17,6 +17,7 @@ export interface UserProfile {
   allowed_cell_ids: string[];
   allowed_team_ids: string[];
   allowed_employee_ids?: string[];
+  allowed_shifts?: ShiftType[];
   can_view_all_company: boolean;
   can_view_all_business_unit: boolean;
   can_view_all_cells: boolean;
@@ -40,6 +41,7 @@ export interface AllowedEmail {
   allowed_cell_ids: string[];
   allowed_team_ids: string[];
   allowed_employee_ids: string[];
+  allowed_shifts?: ShiftType[];
   created_at: string;
   created_by: string;
   updated_at: string;

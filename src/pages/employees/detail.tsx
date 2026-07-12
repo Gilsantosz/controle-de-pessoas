@@ -495,7 +495,7 @@ export const EmployeeDetailPage: React.FC = () => {
 
         {/* BOTOES DE AÇÃO */}
         <div className="px-6 py-4 bg-[#F7F8FC] border-t border-[#E8ECF2] flex items-center justify-between gap-3">
-          {isEdit && currentUser && ['admin', 'hr', 'manager'].includes(currentUser.role) ? (
+          {isEdit && currentUser && ['admin', 'hr', 'manager', 'supervisor'].includes(currentUser.role) ? (
             <button
               type="button"
               onClick={handleDelete}

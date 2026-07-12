@@ -39,6 +39,15 @@ export const Sidebar: React.FC = () => {
     { to: '/settings', label: 'Configurações', icon: Settings },
   ];
 
+  const roleTranslations: Record<string, string> = {
+    admin: 'Administrador',
+    hr: 'Recursos Humanos',
+    manager: 'Gestão Geral',
+    supervisor: 'Supervisor',
+    user: 'Colaborador',
+    viewer: 'Visualizador'
+  };
+
   return (
     <>
       {/* BACKDROP OVERLAY PARA DISPOSITIVOS MÓVEIS */}
@@ -119,14 +128,14 @@ export const Sidebar: React.FC = () => {
             className={`rounded-xl flex items-center bg-[#F6F8FB] transition-all duration-300 ${
               sidebarCollapsed ? 'md:justify-center md:p-2 md:w-10 md:h-10 px-3 py-2 gap-2.5 w-full' : 'px-3 py-2 gap-2.5 w-full'
             }`} 
-            title={sidebarCollapsed ? `${currentUser.name} (${currentUser.role})` : undefined}
+            title={sidebarCollapsed ? `${currentUser.name} (${roleTranslations[currentUser.role] || currentUser.role})` : undefined}
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF9A3E] to-[#6254E8] text-white flex items-center justify-center font-bold text-xs shadow-sm overflow-hidden select-none shrink-0">
               {currentUser.name.substring(0, 2).toUpperCase()}
             </div>
             <div className={`min-w-0 ${sidebarCollapsed ? 'md:hidden block' : 'block'}`}>
               <p className="text-xs font-bold text-[#0F172A] truncate leading-tight">{currentUser.name}</p>
-              <p className="text-[9px] text-[#8A94A6] font-bold uppercase tracking-wider mt-0.5">{currentUser.role}</p>
+              <p className="text-[9px] text-[#8A94A6] font-bold uppercase tracking-wider mt-0.5">{roleTranslations[currentUser.role] || currentUser.role}</p>
             </div>
           </div>
 

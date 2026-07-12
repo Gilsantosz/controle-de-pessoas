@@ -146,7 +146,15 @@ export const CapacityPage: React.FC = () => {
             />
             <KpiCard 
               title="Risco Operacional Máximo" 
-              value={maxRisk.toUpperCase()} 
+              value={(() => {
+                const riskLevelTranslations: Record<string, string> = {
+                  low: 'Baixo',
+                  medium: 'Médio',
+                  high: 'Alto',
+                  critical: 'Crítico'
+                };
+                return (riskLevelTranslations[maxRisk] || maxRisk).toUpperCase();
+              })()}
               icon={<ShieldAlert size={18} className={maxRisk === 'critical' ? 'text-[#E04F6F]' : ''} />} 
               description="Pior cenário projetado"
             />

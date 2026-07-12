@@ -160,7 +160,7 @@ export const SettingsPage: React.FC = () => {
       header: "Tipo",
       accessor: (row: BlockedPeriod) => (
         <span className="text-[9px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded uppercase">
-          {row.block_type === 'inventory' ? 'Inventário' : row.block_type === 'maintenance' ? 'Manutenção' : 'Produção'}
+          {row.block_type === 'inventory' ? 'Inventário' : row.block_type === 'maintenance' ? 'Manutenção' : row.block_type === 'collective_vacation' ? 'Férias Coletivas' : row.block_type === 'peak_production' ? 'Pico de Produção' : 'Outros'}
         </span>
       )
     },

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vacationpro-cache-v3';
+const CACHE_NAME = 'vacationpro-cache-v4';
 const urlsToCache = [
   './',
   './index.html',

@@ -231,13 +231,13 @@ export const AdminUsersPage: React.FC = () => {
       loadData();
     } catch (err) {
       console.error(err);
-      setError('Erro ao salvar edições da whitelist.');
+      setError('Erro ao salvar edições da lista autorizada.');
     }
   };
 
   const handleDeleteWhitelist = async () => {
     if (!currentUser || !selectedWhitelist) return;
-    if (window.confirm(`Tem certeza que deseja excluir ${selectedWhitelist.email} da whitelist?`)) {
+    if (window.confirm(`Tem certeza que deseja excluir ${selectedWhitelist.email} da lista autorizada?`)) {
       setError(null);
       try {
         const docRef = doc(db, 'allowed_emails', selectedWhitelist.normalized_email);
@@ -246,7 +246,7 @@ export const AdminUsersPage: React.FC = () => {
         loadData();
       } catch (err) {
         console.error(err);
-        setError('Erro ao excluir e-mail da whitelist.');
+        setError('Erro ao excluir e-mail da lista autorizada.');
       }
     }
   };
@@ -356,14 +356,14 @@ export const AdminUsersPage: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Shield size={16} className="text-[#6254E8]" />
-            <h3 className="text-sm font-semibold text-[#0F172A]">Whitelist de E-mails</h3>
+            <h3 className="text-sm font-semibold text-[#0F172A]">E-mails Autorizados</h3>
           </div>
           <DataTable 
             columns={whitelistColumns}
             data={allowedEmails}
             loading={loading}
             onRowClick={handleEditWhitelist}
-            emptyMessage="Nenhum e-mail autorizado na whitelist."
+            emptyMessage="Nenhum e-mail autorizado na lista."
           />
         </div>
 
@@ -376,7 +376,7 @@ export const AdminUsersPage: React.FC = () => {
           
           <form onSubmit={handleAddWhitelist} className="bg-white rounded-3xl border border-[#E8ECF2] shadow-2xl max-w-md w-full overflow-hidden relative z-50 animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-[#E8ECF2] flex items-center justify-between">
-              <h3 className="font-bold text-[#0F172A] text-sm">Autorizar E-mail na Whitelist</h3>
+              <h3 className="font-bold text-[#0F172A] text-sm">Autorizar E-mail na Lista</h3>
               <button type="button" onClick={() => setShowAddWhitelist(false)} className="text-[#8A94A6] hover:text-[#0F172A] p-1 rounded-lg">
                 <X size={16} />
               </button>
@@ -748,7 +748,7 @@ export const AdminUsersPage: React.FC = () => {
           
           <form onSubmit={handleSaveWhitelistEdit} className="w-full max-w-md bg-white h-screen shadow-2xl relative z-50 flex flex-col justify-between border-l border-[#E8ECF2] animate-in slide-in-from-right duration-250">
             <div className="p-6 border-b border-[#E8ECF2] flex items-center justify-between">
-              <h3 className="font-bold text-[#0F172A] text-sm">Editar E-mail Autorizado (Whitelist)</h3>
+              <h3 className="font-bold text-[#0F172A] text-sm">Editar E-mail Autorizado</h3>
               <button type="button" onClick={() => setSelectedWhitelist(null)} className="text-[#8A94A6] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F6F8FB]">
                 <X size={16} />
               </button>

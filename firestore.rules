@@ -70,7 +70,8 @@ service cloud.firestore {
 
     // allowed_emails
     match /allowed_emails/{emailId} {
-      allow read: if isActiveUser() && (isAdmin() || isHR() || isManager());
+      allow get: if true;
+      allow list: if isActiveUser() && (isAdmin() || isHR() || isManager());
       allow write: if isActiveUser() && (isAdmin() || isHR());
     }
 

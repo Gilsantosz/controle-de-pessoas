@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, ShieldCheck, Zap, Database } from 'lucide-react';
@@ -64,11 +64,10 @@ export const LoginPage: React.FC = () => {
           const cleanEmail = targetEmail.toLowerCase();
           
           // Verificar se está em allowed_emails
-          const allowedCol = collection(db, 'allowed_emails');
-          const q = query(allowedCol, where('normalized_email', '==', cleanEmail));
-          const querySnap = await getDocs(q);
+          const docRef = doc(db, 'allowed_emails', cleanEmail);
+          const docSnap = await getDoc(docRef);
           
-          if (!querySnap.empty && password.length >= 6) {
+          if (docSnap.exists() && password.length >= 6) {
             // E-mail na whitelist e senha válida. Cria no Firebase Auth e loga!
             await createUserWithEmailAndPassword(auth, cleanEmail, password);
             navigate('/dashboard');
@@ -96,11 +95,10 @@ export const LoginPage: React.FC = () => {
       const cleanEmail = email.toLowerCase().trim();
       
       // 1. Verificar se o e-mail está na lista allowed_emails
-      const allowedCol = collection(db, 'allowed_emails');
-      const q = query(allowedCol, where('normalized_email', '==', cleanEmail));
-      const querySnap = await getDocs(q);
+      const docRef = doc(db, 'allowed_emails', cleanEmail);
+      const docSnap = await getDoc(docRef);
 
-      if (querySnap.empty) {
+      if (!docSnap.exists()) {
         setError('Seu e-mail não está autorizado para acessar o sistema. Solicite liberação ao administrador.');
         setLoading(false);
         return;

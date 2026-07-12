@@ -5,12 +5,13 @@ import {
 } from '../../services/databaseServices';
 import type { Employee, ProductionCell, Alert, VacationRequest, AbsenceRecord } from '../../types';
 import {
-  Calendar, ChevronDown, Plus, Link2, MoreHorizontal
+  Calendar, ChevronDown, Plus, Link2, MoreHorizontal, Send, X, AlertCircle, Loader2
 } from 'lucide-react';
 import {
   WidgetCatalogModal, WidgetGrid, useWidgets
 } from '../../components/cards/WidgetPanel';
 import { useNavigate } from 'react-router-dom';
+import { askGemini, getLocalAiFallback } from '../../services/gemini';
 
 export const DashboardPage: React.FC = () => {
   const { currentUser } = useAppStore();
@@ -18,6 +19,84 @@ export const DashboardPage: React.FC = () => {
   const { activeWidgets, modalOpen, setModalOpen, toggleWidget, removeWidget } = useWidgets();
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  // AI Copilot States
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotInput, setCopilotInput] = useState('');
+  const [copilotMessages, setCopilotMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+    { role: 'assistant', content: 'Olá! Sou o Headcout Copilot. Como posso ajudar você hoje com a gestão dos colaboradores e capacidade produtiva da fábrica?' }
+  ]);
+  const [copilotLoading, setCopilotLoading] = useState(false);
+  const [copilotError, setCopilotError] = useState<string | null>(null);
+
+  const handleSendCopilot = async (questionText?: string) => {
+    const textToSend = questionText || copilotInput;
+    if (!textToSend.trim()) return;
+
+    // Adiciona pergunta do usuário
+    const userMsg = { role: 'user' as const, content: textToSend };
+    setCopilotMessages(prev => [...prev, userMsg]);
+    if (!questionText) setCopilotInput('');
+    setCopilotLoading(true);
+    setCopilotError(null);
+    setCopilotOpen(true);
+
+    // Serializar dados para contexto da IA
+    const systemInstruction = 
+      "Você é o Headcout Copilot, um analista assistente de IA especialista em dados industriais e de RH. " +
+      "Você tem acesso aos dados da fábrica em tempo real. Responda às perguntas com exatidão, clareza e sempre em português brasileiro. " +
+      "Caso seja solicitado fazer listagens, apresente-as usando tabelas ou formato de tópicos markdown legíveis.";
+
+    const contextData = {
+      summary: {
+        totalEmployees: employees.length,
+        activeEmployees: employees.filter(e => e.status === 'active').length,
+        onVacation: employees.filter(e => e.status === 'vacation').length,
+        cellsCount: cells.length,
+        pendingVacations: vacationRequests.filter(r => r.status === 'pending').length
+      },
+      employees: employees.map(e => ({
+        name: e.name,
+        reg: e.registration,
+        role: e.role,
+        cell: e.cell_name,
+        vacation_balance: e.vacation_balance_days,
+        deadline: e.concession_deadline,
+        status: e.status
+      }))
+    };
+
+    const prompt = `CONTEXTO DOS DADOS DA FÁBRICA:
+${JSON.stringify(contextData)}
+
+PERGUNTA DO USUÁRIO:
+"${textToSend}"`;
+
+    try {
+      const response = await askGemini(prompt, systemInstruction);
+      if (response.error) {
+        // Fallback local caso a chamada falhe (ex: API key inativa)
+        const fallbackText = getLocalAiFallback(textToSend, { 
+          employees, 
+          cells, 
+          vacationRequests 
+        });
+        setCopilotMessages(prev => [...prev, { role: 'assistant', content: fallbackText }]);
+        setCopilotError("Modo de resposta local ativado (Verifique se a Generative Language API está ativada no Google Cloud).");
+      } else {
+        setCopilotMessages(prev => [...prev, { role: 'assistant', content: response.text }]);
+      }
+    } catch (err: any) {
+      const fallbackText = getLocalAiFallback(textToSend, { 
+        employees, 
+        cells, 
+        vacationRequests 
+      });
+      setCopilotMessages(prev => [...prev, { role: 'assistant', content: fallbackText }]);
+    } finally {
+      setCopilotLoading(false);
+    }
+  };
 
   const handleCopyLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -349,18 +428,37 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* AI COPILOT INPUT */}
-          <div className="mt-6 bg-[#F6F8FB] rounded-2xl p-4 border border-[#E8ECF2]/60 flex flex-col md:flex-row items-start md:items-center gap-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#0F172A] shrink-0">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendCopilot();
+            }}
+            className="mt-6 bg-[#F6F8FB] rounded-2xl p-4 border border-[#E8ECF2]/60 flex flex-col md:flex-row items-start md:items-center gap-3"
+          >
+            <div 
+              onClick={() => setCopilotOpen(true)}
+              className="flex items-center gap-2 text-xs font-bold text-[#FF6B1A] shrink-0 cursor-pointer hover:opacity-85"
+            >
               <span>✨</span>
-              <span>O que você gostaria de explorar a seguir?</span>
-              <ChevronDown size={14} className="text-[#8A94A6]" />
+              <span>Assistente Copilot IA:</span>
             </div>
-            <div className="flex-1 bg-white border border-[#E8ECF2] px-4 py-2.5 rounded-xl text-xs text-[#0F172A] font-semibold w-full">
-              Quero analisar as solicitações pendentes em relação ao{' '}
-              <span className="bg-[#FFF4D6] text-[#B27B00] px-1.5 py-0.5 rounded font-mono">/saldo de férias</span>
-              <span className="animate-pulse ml-0.5 font-normal">|</span>
+            <div className="flex-1 flex bg-white border border-[#E8ECF2] px-3 py-1.5 rounded-xl text-xs text-[#0F172A] font-semibold w-full items-center gap-2">
+              <input
+                type="text"
+                value={copilotInput}
+                onChange={(e) => setCopilotInput(e.target.value)}
+                placeholder="Pergunte sobre férias, colaboradores ativos, células ou analise a fábrica..."
+                className="flex-1 bg-transparent focus:outline-none placeholder-[#8A94A6] text-xs font-semibold py-1"
+              />
+              <button 
+                type="submit"
+                className="p-1 text-[#FF6B1A] hover:bg-slate-50 rounded-lg transition-all"
+                title="Perguntar ao Copilot"
+              >
+                <Send size={14} />
+              </button>
             </div>
-          </div>
+          </form>
         </div>
 
         {/* CAPACIDADE PLANEJADA */}
@@ -590,6 +688,112 @@ export const DashboardPage: React.FC = () => {
         onClose={() => setModalOpen(false)}
         onToggle={toggleWidget}
       />
+
+      {/* DRAWER DO COPILOT IA */}
+      {copilotOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end select-none">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setCopilotOpen(false)}
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-300"
+          />
+
+          {/* Drawer Panel */}
+          <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-300">
+            {/* Header */}
+            <div className="p-5 border-b border-[#E8ECF2] flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">✨</span>
+                <div>
+                  <h3 className="text-sm font-bold text-[#0F172A]">Headcout Copilot IA</h3>
+                  <p className="text-[10px] font-bold text-[#8A94A6] uppercase tracking-wider">Assistente de Painel</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setCopilotOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-200 text-[#8A94A6] hover:text-[#0F172A] transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 p-5 space-y-4 overflow-y-auto bg-slate-50/50">
+              {copilotMessages.map((msg, idx) => (
+                <div 
+                  key={idx} 
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[85%] p-3.5 rounded-2xl text-xs font-semibold leading-relaxed shadow-xs ${
+                    msg.role === 'user' 
+                      ? 'bg-gradient-to-tr from-[#FF6B1A] to-[#FF8E3C] text-white rounded-br-none' 
+                      : 'bg-white text-slate-800 border border-[#E8ECF2] rounded-bl-none whitespace-pre-line'
+                  }`}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              
+              {copilotLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-[#E8ECF2] p-3 rounded-2xl rounded-bl-none flex items-center gap-2 text-xs font-bold text-[#8A94A6]">
+                    <Loader2 size={12} className="animate-spin text-[#FF6B1A]" />
+                    <span>Headcout está pensando...</span>
+                  </div>
+                </div>
+              )}
+
+              {copilotError && (
+                <div className="p-3 bg-[#FFF4D6] border border-[#FFF4D6] rounded-xl text-[10px] font-bold text-[#B27B00] flex items-start gap-1.5 leading-normal">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{copilotError}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Prompts */}
+            <div className="p-3 border-t border-[#E8ECF2] bg-white flex gap-2 overflow-x-auto shrink-0 select-none">
+              {[
+                "Quem tem férias vencidas?",
+                "Total de operadores por célula",
+                "Quais os alertas críticos?"
+              ].map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSendCopilot(suggestion)}
+                  className="px-3 py-1.5 bg-[#F6F8FB] hover:bg-[#FF6B1A]/10 border border-[#E8ECF2] hover:border-[#FF6B1A]/20 text-[10px] font-bold text-slate-600 hover:text-[#FF6B1A] rounded-full shrink-0 transition-all cursor-pointer"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Form */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendCopilot();
+              }}
+              className="p-4 border-t border-[#E8ECF2] bg-white flex gap-2 shrink-0"
+            >
+              <input
+                type="text"
+                value={copilotInput}
+                onChange={(e) => setCopilotInput(e.target.value)}
+                placeholder="Pergunte qualquer coisa sobre o painel..."
+                className="flex-1 h-10 px-4 bg-[#F6F8FB] border border-[#E8ECF2] rounded-xl text-xs font-semibold focus:outline-none focus:bg-white focus:border-[#FF6B1A] transition-all"
+              />
+              <button 
+                type="submit"
+                disabled={copilotLoading}
+                className="w-10 h-10 bg-[#FF6B1A] hover:bg-[#E0560F] text-white rounded-xl flex items-center justify-center shadow-md transition-all active:scale-95 disabled:opacity-50"
+              >
+                <Send size={15} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

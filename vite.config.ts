@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss()
     ],
     resolve: {
-      alias: (useMock ? {
+      alias: ((useMock && !isProduction) ? {
         'firebase/app': path.resolve(__dirname, 'src/services/firebaseMock.ts'),
         'firebase/auth': path.resolve(__dirname, 'src/services/firebaseMock.ts'),
         'firebase/firestore': path.resolve(__dirname, 'src/services/firebaseMock.ts'),

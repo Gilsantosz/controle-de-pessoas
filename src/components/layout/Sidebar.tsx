@@ -77,7 +77,7 @@ export const Sidebar: React.FC = () => {
           >
             {/* Imagem da Logomarca */}
             <img 
-              src={`${import.meta.env.BASE_URL}logo.png`} 
+              src={`${import.meta.env.BASE_URL}logo.png?v=2`} 
               alt="Logo" 
               className="w-8 h-8 rounded-lg object-contain shrink-0" 
             />

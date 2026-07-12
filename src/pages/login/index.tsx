@@ -132,7 +132,7 @@ export const LoginPage: React.FC = () => {
             {/* LOGO */}
             <div className="flex items-center gap-3 mb-10">
               <img 
-                src={`${import.meta.env.BASE_URL}logo.png`} 
+                src={`${import.meta.env.BASE_URL}logo.png?v=2`} 
                 alt="Logo" 
                 className="w-10 h-10 rounded-xl object-contain shadow-sm" 
               />
@@ -220,7 +220,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 rounded-xl bg-gradient-to-tr from-[#6254E8] to-[#4F9CF9] text-white font-semibold text-xs transition-all hover:shadow-lg hover:shadow-[#6254E8]/15 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 mt-6 cursor-pointer"
+                className="w-full h-11 rounded-xl bg-gradient-to-tr from-[#FF6B1A] to-[#FF8E3C] text-white font-semibold text-xs transition-all hover:shadow-lg hover:shadow-[#FF6B1A]/15 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 mt-6 cursor-pointer"
               >
                 {loading ? (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -242,7 +242,7 @@ export const LoginPage: React.FC = () => {
                     setIsSignUp(!isSignUp);
                     setError(null);
                   }}
-                  className="text-[#6254E8] font-bold ml-1.5 hover:underline cursor-pointer"
+                  className="text-[#FF6B1A] font-bold ml-1.5 hover:underline cursor-pointer"
                 >
                   {isSignUp ? 'Entre aqui' : 'Cadastre-se'}
                 </button>
@@ -278,11 +278,11 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* LADO DIREITO: DEMO PREVIEW DO DASHBOARD (DRIBBBLE STYLE) */}
-        <div className="hidden md:flex md:w-[52%] bg-gradient-to-tr from-[#6254E8]/5 via-[#4F9CF9]/5 to-transparent border-l border-[#E8ECF2]/40 p-12 items-center justify-center relative overflow-hidden">
+        <div className="hidden md:flex md:w-[52%] bg-gradient-to-tr from-[#FF6B1A]/5 via-[#FF8E3C]/5 to-transparent border-l border-[#E8ECF2]/40 p-12 items-center justify-center relative overflow-hidden">
           
           {/* Círculos gradientes desfocados */}
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#6254E8]/10 rounded-full filter blur-3xl -z-10 translate-x-20 -translate-y-20"></div>
-          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#4F9CF9]/10 rounded-full filter blur-3xl -z-10 -translate-x-10 translate-y-10"></div>
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#FF6B1A]/10 rounded-full filter blur-3xl -z-10 translate-x-20 -translate-y-20"></div>
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#FF8E3C]/10 rounded-full filter blur-3xl -z-10 -translate-x-10 translate-y-10"></div>
           
           {/* Mockup do Dashboard */}
           <div className="w-full max-w-[420px] bg-white rounded-3xl border border-[#E8ECF2]/80 shadow-[0_20px_50px_rgba(0,0,0,0.06)] p-6 space-y-6 animate-in slide-in-from-right-4 duration-500 delay-100">
@@ -290,7 +290,11 @@ export const LoginPage: React.FC = () => {
             {/* Mock Header */}
             <div className="flex justify-between items-center pb-4 border-b border-[#E8ECF2]/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-gradient-to-tr from-[#6254E8] to-[#4F9CF9] text-white rounded-lg flex items-center justify-center font-bold text-[10px]">VP</div>
+                <img 
+                  src={`${import.meta.env.BASE_URL}logo.png?v=2`} 
+                  alt="Logo" 
+                  className="w-8 h-8 rounded-lg object-contain shrink-0" 
+                />
                 <div>
                   <p className="text-[8px] text-[#8A94A6] font-bold uppercase tracking-wider">Célula Industrial</p>
                   <p className="text-xs font-bold text-[#0F172A]">Corte Laser — Turno 1</p>
@@ -324,12 +328,12 @@ export const LoginPage: React.FC = () => {
             <div className="space-y-2">
               <p className="text-[8px] text-[#8A94A6] font-bold uppercase tracking-wider">Capacidade Semanal</p>
               <div className="h-24 bg-[#F7F8FC] rounded-xl border border-[#E8ECF2]/60 flex items-end justify-between p-3 gap-2">
-                <div className="w-full bg-[#6254E8]/20 h-[80%] rounded-md"></div>
-                <div className="w-full bg-[#6254E8]/20 h-[90%] rounded-md"></div>
-                <div className="w-full bg-[#6254E8] h-[100%] rounded-md"></div>
-                <div className="w-full bg-[#6254E8]/20 h-[70%] rounded-md"></div>
-                <div className="w-full bg-[#4F9CF9] h-[85%] rounded-md"></div>
-                <div className="w-full bg-[#6254E8]/20 h-[95%] rounded-md"></div>
+                <div className="w-full bg-[#FF6B1A]/20 h-[80%] rounded-md"></div>
+                <div className="w-full bg-[#FF6B1A]/20 h-[90%] rounded-md"></div>
+                <div className="w-full bg-[#FF6B1A] h-[100%] rounded-md"></div>
+                <div className="w-full bg-[#FF6B1A]/20 h-[70%] rounded-md"></div>
+                <div className="w-full bg-[#FF6B1A]/60 h-[85%] rounded-md"></div>
+                <div className="w-full bg-[#FF6B1A]/20 h-[95%] rounded-md"></div>
               </div>
             </div>
 

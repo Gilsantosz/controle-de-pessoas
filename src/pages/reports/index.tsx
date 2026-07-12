@@ -9,7 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const LOGO_URL = `${typeof window !== 'undefined' ? window.location.origin : ''}/logo.png`;
+const LOGO_URL = `${typeof window !== 'undefined' ? window.location.origin : ''}/logo.png?v=2`;
 
 // Constante de URL do logo para uso nos PDFs (carregado dinamicamente)
 const _LOGO_REF = LOGO_URL; void _LOGO_REF;

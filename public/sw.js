@@ -1,4 +1,4 @@
-const CACHE_NAME = 'headcout-cache-v5';
+const CACHE_NAME = 'headcout-cache-v6';
 const urlsToCache = [
   './',
   './index.html',
@@ -32,34 +32,63 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Apenas cachear requisições GET locais
+  // Apenas tratar requisições GET locais
   if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
     return;
   }
-  
-  event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      
-      return fetch(event.request).then(response => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
+
+  const isHTMLOrManifest = 
+    event.request.mode === 'navigate' ||
+    event.request.url.includes('manifest.json') ||
+    event.request.url.endsWith('.html') ||
+    event.request.url === self.location.origin + '/' ||
+    event.request.url === self.location.origin + '/index.html';
+
+  if (isHTMLOrManifest) {
+    // Estratégia Network First para HTML, manifest e navegação (evita cache-lock)
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseToCache);
+            });
+          }
           return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then(cachedResponse => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            if (event.request.mode === 'navigate') {
+              return caches.match('./index.html');
+            }
+          });
+        })
+    );
+  } else {
+    // Estratégia Cache First para ativos estáticos (JS, CSS, imagens)
+    event.respondWith(
+      caches.match(event.request).then(cachedResponse => {
+        if (cachedResponse) {
+          return cachedResponse;
         }
-        
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
+
+        return fetch(event.request).then(response => {
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+
+          return response;
         });
-        
-        return response;
-      }).catch(() => {
-        // Fallback offline se a rede falhar
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
-    })
-  );
+      })
+    );
+  }
 });

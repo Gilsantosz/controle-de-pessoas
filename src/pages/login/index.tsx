@@ -131,11 +131,13 @@ export const LoginPage: React.FC = () => {
           <div>
             {/* LOGO */}
             <div className="flex items-center gap-3 mb-10">
-              <div className="w-10 h-10 bg-gradient-to-tr from-[#6254E8] to-[#4F9CF9] rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-[0_4px_12px_rgba(98,84,232,0.25)]">
-                V
-              </div>
+              <img 
+                src={`${import.meta.env.BASE_URL}logo.png`} 
+                alt="Logo" 
+                className="w-10 h-10 rounded-xl object-contain shadow-sm" 
+              />
               <div>
-                <h1 className="text-sm font-extrabold text-[#0F172A] tracking-tight leading-none">VacationPro</h1>
+                <h1 className="text-sm font-extrabold text-[#0F172A] tracking-tight leading-none">Headcout</h1>
                 <span className="text-[8px] font-bold text-[#8A94A6] uppercase tracking-wider">Industrial ERP</span>
               </div>
             </div>

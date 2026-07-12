@@ -75,14 +75,14 @@ export const Sidebar: React.FC = () => {
             title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}
             className="flex items-center gap-2.5 hover:opacity-80 flex-1 cursor-pointer"
           >
-            {/* Caixa Laranja com símbolo Z */}
-            <div className="w-7 h-7 bg-[#FF9A3E] rounded-lg flex items-center justify-center text-white relative shadow-sm overflow-hidden shrink-0">
-              <span className="font-extrabold text-sm select-none tracking-tighter" style={{ fontFamily: 'system-ui' }}>Z</span>
-              {/* Listra diagonal interna */}
-              <div className="absolute inset-0 border border-white/20 transform rotate-45 scale-125"></div>
-            </div>
+            {/* Imagem da Logomarca */}
+            <img 
+              src={`${import.meta.env.BASE_URL}logo.png`} 
+              alt="Logo" 
+              className="w-8 h-8 rounded-lg object-contain shrink-0" 
+            />
             <span className={`text-xl font-bold text-[#0F172A] tracking-tighter select-none ${sidebarCollapsed ? 'md:hidden' : 'block'}`} style={{ fontFamily: 'system-ui' }}>
-              zentra
+              Headcout
             </span>
           </div>
 
